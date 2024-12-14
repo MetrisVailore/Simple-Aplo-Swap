@@ -3,7 +3,7 @@ let provider;
 let signer;
 let contract;
 
-const contractAddress = "YOUR_CONTRACT_ADDRESS"; // Replace with actual contract address
+const contractAddress = "0x92f29B1c684DEdF33e3104BC8A58531aA833d31c"; // Replace with actual contract address
 const contractABI = [
     // Functions for swapping
     {
