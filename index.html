@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Swap Interface</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <h1>Token Swap</h1>
+        <div id="wallet">
+            <button id="connectWalletBtn">Connect Wallet</button>
+            <span id="walletAddress"></span>
+        </div>
+        
+        <div id="swap-section">
+            <label for="token0">From Token</label>
+            <input type="text" id="token0" placeholder="Token Address">
+            <input type="number" id="amount0" placeholder="Amount">
+            
+            <label for="token1">To Token</label>
+            <input type="text" id="token1" placeholder="Token Address">
+            
+            <button id="swapBtn">Swap</button>
+        </div>
+        
+        <div id="liquidity-section">
+            <label for="addToken0">Add Token 0</label>
+            <input type="text" id="addToken0" placeholder="Token Address">
+            
+            <label for="addToken1">Add Token 1</label>
+            <input type="text" id="addToken1" placeholder="Token Address">
+            
+            <label for="amountAdd0">Amount of Token 0</label>
+            <input type="number" id="amountAdd0" placeholder="Amount">
+            
+            <label for="amountAdd1">Amount of Token 1</label>
+            <input type="number" id="amountAdd1" placeholder="Amount">
+            
+            <button id="addLiquidityBtn">Add Liquidity</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.0.0/dist/ethers.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
