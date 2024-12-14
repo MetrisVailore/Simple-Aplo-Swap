@@ -5,8 +5,178 @@ let contract;
 
 const contractAddress = "YOUR_CONTRACT_ADDRESS"; // Replace with actual contract address
 const contractABI = [
-    // Add relevant ABI for the swap and liquidity functions here
+    // Functions for swapping
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "tokenIn",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "tokenOut",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amountIn",
+                "type": "uint256"
+            }
+        ],
+        "name": "swap",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    // Functions for adding liquidity
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "token0",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "token1",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount0",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount1",
+                "type": "uint256"
+            }
+        ],
+        "name": "addLiquidity",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    // Functions for creating a pool
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "token0",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "token1",
+                "type": "address"
+            }
+        ],
+        "name": "createPool",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    // Functions for removing liquidity
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "token0",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "token1",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount0",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount1",
+                "type": "uint256"
+            }
+        ],
+        "name": "removeLiquidity",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    // Function for checking swap amount
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "inputAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "inputReserve",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "outputReserve",
+                "type": "uint256"
+            }
+        ],
+        "name": "getSwapAmount",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+    },
+    // Function for getting pool ID
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "token0",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "token1",
+                "type": "address"
+            }
+        ],
+        "name": "getPoolId",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+    },
+    // Function for adding a token to the allowed list
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "tokenAddress",
+                "type": "address"
+            }
+        ],
+        "name": "addToken",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
 ];
+
 
 async function connectWallet() {
     if (window.ethereum) {
