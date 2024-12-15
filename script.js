@@ -1,5 +1,5 @@
 const customRpcUrl = 'https://pub1.aplocoin.com'; // Замените на URL вашего RPC
-const expectedChainId = 1234; // Укажите Chain ID вашей кастомной сети
+const expectedChainId = 28282; // Укажите Chain ID вашей кастомной сети
 const swapperContractAddress = '0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB'; // Адрес вашего контракта swap
 
 // Подключаемся к кастомной сети через ethers.js
