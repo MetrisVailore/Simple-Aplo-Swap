@@ -9,13 +9,13 @@ const contractABI = [
     {
         "inputs": [
             {
-                "internalType": "address",
-                "name": "tokenIn",
-                "type": "address"
+                "internalType": "bytes32",
+                "name": "poolId",
+                "type": "bytes32"
             },
             {
                 "internalType": "address",
-                "name": "tokenOut",
+                "name": "tokenIn",
                 "type": "address"
             },
             {
@@ -33,14 +33,9 @@ const contractABI = [
     {
         "inputs": [
             {
-                "internalType": "address",
-                "name": "token0",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "token1",
-                "type": "address"
+                "internalType": "bytes32",
+                "name": "poolId",
+                "type": "bytes32"
             },
             {
                 "internalType": "uint256",
@@ -58,26 +53,31 @@ const contractABI = [
         "stateMutability": "nonpayable",
         "type": "function"
     },
-    // Functions for creating a pool
+    // Functions for removing liquidity
     {
         "inputs": [
             {
-                "internalType": "address",
-                "name": "token0",
-                "type": "address"
+                "internalType": "bytes32",
+                "name": "poolId",
+                "type": "bytes32"
             },
             {
-                "internalType": "address",
-                "name": "token1",
-                "type": "address"
+                "internalType": "uint256",
+                "name": "amount0",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount1",
+                "type": "uint256"
             }
         ],
-        "name": "createPool",
+        "name": "removeLiquidity",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
     },
-    // Functions for removing liquidity
+    // Functions for creating a pool
     {
         "inputs": [
             {
@@ -99,69 +99,38 @@ const contractABI = [
                 "internalType": "uint256",
                 "name": "amount1",
                 "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "swapFee",
+                "type": "uint256"
             }
         ],
-        "name": "removeLiquidity",
+        "name": "createPool",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
     },
-    // Function for checking swap amount
+    // Functions for setting swap fee
     {
         "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "inputAmount",
-                "type": "uint256"
-            },
-            {
-                "internalType": "uint256",
-                "name": "inputReserve",
-                "type": "uint256"
-            },
-            {
-                "internalType": "uint256",
-                "name": "outputReserve",
-                "type": "uint256"
-            }
-        ],
-        "name": "getSwapAmount",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "pure",
-        "type": "function"
-    },
-    // Function for getting pool ID
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "token0",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "token1",
-                "type": "address"
-            }
-        ],
-        "name": "getPoolId",
-        "outputs": [
             {
                 "internalType": "bytes32",
-                "name": "",
+                "name": "poolId",
                 "type": "bytes32"
+            },
+            {
+                "internalType": "uint256",
+                "name": "newSwapFee",
+                "type": "uint256"
             }
         ],
-        "stateMutability": "pure",
+        "name": "setPoolSwapFee",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     },
-    // Function for adding a token to the allowed list
+    // Functions for adding a token to the allowed list
     {
         "inputs": [
             {
@@ -174,8 +143,37 @@ const contractABI = [
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
+    },
+    // Functions for setting minimum liquidity
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "newMinimumLiquidity",
+                "type": "uint256"
+            }
+        ],
+        "name": "setMinimumLiquidity",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    // Functions for setting max swap fee
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "newMaxSwapFee",
+                "type": "uint256"
+            }
+        ],
+        "name": "setMaxSwapFee",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
     }
 ];
+
 
 
 async function connectWallet() {
