@@ -1,47 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DEX Swap Interface</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEWAP</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Swap Tokens</h1>
-        <div class="swap-interface">
-            <div class="swap-container">
-                <div class="swap-token">
-                    <label for="tokenIn">From</label>
-                    <div class="token-selector">
-                        <input type="text" id="tokenInAmount" placeholder="Enter amount" class="amount-input">
-                        <select id="tokenIn" class="token-dropdown">
-                            <!-- Token options will be dynamically added -->
-                        </select>
-                    </div>
-                </div>
-                <div class="swap-arrow">
-                    <span>⇆</span>
-                </div>
-                <div class="swap-token">
-                    <label for="tokenOut">To</label>
-                    <div class="token-selector">
-                        <input type="text" id="tokenOutAmount" placeholder="Amount to receive" disabled class="amount-input">
-                        <select id="tokenOut" class="token-dropdown">
-                            <!-- Token options will be dynamically added -->
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="swap-info">
-                <p>Swap Fee: <span id="swapFee">0.3%</span></p>
-                <p>Liquidity: <span id="liquidityInfo">Loading...</span></p>
-                <button id="swapBtn">Swap</button>
-            </div>
-        </div>
+  <div class="container">
+    <h1>MEWAP</h1>
+    <div class="swap-form">
+      <input id="tokenIn" type="text" placeholder="Token In Address">
+      <input id="tokenOut" type="text" placeholder="Token Out Address">
+      <input id="amountIn" type="number" placeholder="Amount In">
+      <button id="swapButton">Swap</button>
     </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
-    <script src="app.js"></script>
+    <p id="status"></p>
+  </div>
+  <script src="script.js"></script>
 </body>
 </html>
