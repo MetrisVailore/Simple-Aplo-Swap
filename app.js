@@ -1,5 +1,5 @@
 const web3 = new Web3(window.ethereum);
-const contractAddress = "0xYourContractAddress"; // Замените на ваш контракт
+const contractAddress = "0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB"; // Замените на ваш контракт
 const contractABI = const contractABI = [
     // Functions for swapping
     {
