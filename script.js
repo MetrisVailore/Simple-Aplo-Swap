@@ -21,8 +21,6 @@ async function connectWallet() {
 async function checkNetwork() {
     const network = await provider.getNetwork();
     if (network.chainId !== expectedChainId) {
-        alert(network.chainId);
-        alert(expectedChainId);
         alert("You are connected to the wrong network! Please switch to the correct network.");
         return false;
     }
@@ -32,6 +30,7 @@ async function checkNetwork() {
 // Функция для approve токенов
 async function approveToken(tokenAddress, spenderAddress, amount) {
     const { signer, accounts } = await connectWallet();
+    const signer = provider.getSigner(); 
     if (!signer) return;
 
     const tokenABI = [
