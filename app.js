@@ -1,65 +1,74 @@
-const SWAPPER_ADDRESS = "0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB";
-const SWAPPER_ABI = [
-  "function swap(bytes32 poolId, address tokenIn, uint256 amountIn) external",
-];
-const ERC20_ABI = [
-  "function approve(address spender, uint256 amount) external returns (bool)",
-  "function allowance(address owner, address spender) external view returns (uint256)",
-];
-
-document.getElementById("swapButton").addEventListener("click", async () => {
-  const tokenIn = document.getElementById("tokenIn").value;
-  const tokenOut = document.getElementById("tokenOut").value;
-  const amountIn = document.getElementById("amountIn").value;
-
-  if (!tokenIn || !tokenOut || !amountIn) {
-    setStatus("Please fill in all fields");
-    return;
-  }
-
-  try {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    const signer = provider.getSigner();
-
-    // Step 1: Approve the token
-    setStatus("Approving token...");
-    await approveToken(tokenIn, signer, amountIn);
-
-    // Step 2: Perform the swap
-    const swapper = new ethers.Contract(SWAPPER_ADDRESS, SWAPPER_ABI, signer);
-    const poolId = ethers.utils.keccak256(
-      ethers.utils.defaultAbiCoder.encode(["address", "address"], [tokenIn, tokenOut])
-    );
-
-    setStatus("Processing swap...");
-    const tx = await swapper.swap(poolId, tokenIn, ethers.utils.parseUnits(amountIn, 18));
-    await tx.wait();
-    setStatus("Swap successful!");
-  } catch (error) {
-    console.error(error);
-    setStatus("Swap failed. Check the console for details.");
-  }
-});
-
-async function approveToken(tokenAddress, signer, amount) {
-  const erc20 = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-
-  // Check current allowance
-  const allowance = await erc20.allowance(await signer.getAddress(), SWAPPER_ADDRESS);
-  const requiredAmount = ethers.utils.parseUnits(amount, 18);
-
-  if (allowance.gte(requiredAmount)) {
-    setStatus("Token already approved.");
-    return;
-  }
-
-  // Approve the token
-  const tx = await erc20.approve(SWAPPER_ADDRESS, requiredAmount);
-  await tx.wait();
-  setStatus("Token approved.");
+// Проверяем, что MetaMask подключен
+if (typeof window.ethereum !== 'undefined') {
+    console.log('MetaMask is installed!');
 }
 
-function setStatus(message) {
-  document.getElementById("status").textContent = message;
+let provider = new ethers.providers.Web3Provider(window.ethereum);
+let signer = provider.getSigner();
+
+// Адрес контракта Swapper по умолчанию
+const swapperAddress = '0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB';  // Замените на реальный адрес контракта Swapper
+
+// ABI для ERC20 токенов (для approve)
+const erc20ABI = [
+    "function approve(address spender, uint256 amount) public returns (bool)"
+];
+
+// ABI для контракта Swapper
+const swapperABI = [
+    "function swap(address tokenIn, uint256 amountIn, address tokenOut, uint256 minAmountOut) external",
+    "function getSwapAmount(address tokenIn, uint256 amountIn, address tokenOut) external view returns (uint256)"
+];
+
+// Функция для получения значений из формы
+function getFormData() {
+    const tokenIn = document.getElementById('tokenIn').value; // Адрес токена для ввода
+    const tokenOut = document.getElementById('tokenOut').value; // Адрес токена для обмена
+    const amountIn = ethers.utils.parseUnits(document.getElementById('amountIn').value, 18); // Сумма токенов для обмена
+    const minAmountOut = ethers.utils.parseUnits(document.getElementById('minAmountOut').value, 18); // Минимум для обмена
+    return { tokenIn, tokenOut, amountIn, minAmountOut };
 }
+
+// Функция для approve токенов
+async function approveTokens(tokenAddress, spender, amount) {
+    const tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
+    
+    try {
+        const tx = await tokenContract.approve(spender, amount);
+        await tx.wait();
+        console.log(`Approved ${amount} tokens for ${spender}`);
+    } catch (error) {
+        console.error('Approve failed', error);
+    }
+}
+
+// Функция для обмена токенов
+async function swapTokens(tokenIn, amountIn, tokenOut, minAmountOut) {
+    const swapperContract = new ethers.Contract(swapperAddress, swapperABI, signer);
+    
+    try {
+        const tx = await swapperContract.swap(tokenIn, amountIn, tokenOut, minAmountOut);
+        await tx.wait();
+        console.log(`Swapped ${amountIn} tokens from ${tokenIn} to ${tokenOut}`);
+    } catch (error) {
+        console.error('Swap failed', error);
+    }
+}
+
+// Обработчик нажатия кнопки для выполнения транзакции
+async function handleSwap() {
+    const { tokenIn, tokenOut, amountIn, minAmountOut } = getFormData();
+
+    // Получаем аккаунт пользователя
+    const userAddress = await signer.getAddress();
+    console.log(`User Address: ${userAddress}`);
+
+    // Утверждаем токены для контракта Swapper
+    await approveTokens(tokenIn, swapperAddress, amountIn);
+
+    // Выполняем обмен токенов
+    await swapTokens(tokenIn, amountIn, tokenOut, minAmountOut);
+}
+
+// Вешаем обработчик на кнопку
+document.getElementById('swapButton').addEventListener('click', handleSwap);
