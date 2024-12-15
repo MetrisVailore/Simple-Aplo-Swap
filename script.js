@@ -88,20 +88,50 @@ async function createPool(token0Address, token1Address, amount0, amount1, swapFe
 
 async function swapTokens(tokenInAddress, amountIn, token0Address, token1Address) {
     try {
-        const poolId = await getPoolId(token0Address, token1Address);
-        const tokenIn = new ethers.Contract(tokenInAddress, ['function approve(address spender, uint256 amount)'], signer);
+        if (!window.ethereum) {
+            alert('Please install MetaMask!');
+            return;
+        }
 
-        const approvalTx = await tokenIn.approve(swapperContract.address, ethers.utils.parseUnits(amountIn, 18));
-        console.log('Approval transaction sent:', approvalTx);
-        await approvalTx.wait();
+        // Request account access if needed
+        await ethereum.request({ method: 'eth_requestAccounts' });
 
-        const swapTx = await swapperContract.swap(poolId, tokenInAddress, ethers.utils.parseUnits(amountIn, 18));
-        console.log('Swap successful!', swapTx);
+        // Create a Web3 provider using MetaMask's injected provider
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+
+        const swapperContractAddress = '0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB'; // Add your Swapper contract address here
+        const swapperAbi = [
+            // Add your contract ABI here
+        ];
+
+        const swapperContract = new ethers.Contract(swapperContractAddress, swapperAbi, signer);
+
+        // Get the poolId for the swap
+        const poolId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+            ["address", "address"],
+            [token0Address, token1Address]
+        ));
+
+        // Approve tokens before swapping
+        const tokenIn = new ethers.Contract(tokenInAddress, ['function approve(address spender, uint256 amount) public returns (bool)'], signer);
+        const amount = ethers.utils.parseUnits(amountIn, 18); // Assuming 18 decimals
+
+        // Approve the contract to spend the input tokens
+        const approval = await tokenIn.approve(swapperContractAddress, amount);
+        await approval.wait();
+
+        // Perform the swap
+        const swapTx = await swapperContract.swap(poolId, tokenInAddress, amount);
         await swapTx.wait();
+
+        alert('Swap successful!');
     } catch (error) {
         console.error('Error swapping tokens:', error);
+        alert('Error: ' + error.message);
     }
 }
+
 
 async function getPoolId(token0Address, token1Address) {
     try {
