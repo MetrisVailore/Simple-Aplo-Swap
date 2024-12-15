@@ -229,27 +229,37 @@ const Swapper_ABI = [
 
 // Set up the web3 provider (e.g., MetaMask)
 let provider;
+
 if (window.ethereum) {
   provider = new ethers.providers.Web3Provider(window.ethereum);
   try {
     // Requesting account access (this triggers MetaMask's popup)
-    await window.ethereum.request({ method: "eth_requestAccounts" });
+    window.ethereum.request({ method: "eth_requestAccounts" })
+      .then(() => {
+        // After requesting access, we can get the signer
+        signer = provider.getSigner();  // This no longer needs `.then()` because it is synchronous
+        console.log("Signer is: ", signer);
+      })
+      .catch((err) => {
+        console.error("User denied account access");
+        alert("Please connect your MetaMask wallet.");
+      });
   } catch (err) {
-    console.error("User denied account access");
+    console.error("Error while initializing provider", err);
     alert("Please connect your MetaMask wallet.");
   }
 } else {
   alert("Please install MetaMask!");
 }
 
-// Get the signer (user's wallet)
-let signer = provider.getSigner();
-
 // Contract address (replace with the deployed contract address)
 const swapperAddress = "0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB";  // Replace with actual contract address
 
 // Create the contract instance
-const swapperContract = new ethers.Contract(swapperAddress, Swapper_ABI, signer);
+let swapperContract;
+if (signer) {
+  swapperContract = new ethers.Contract(swapperAddress, Swapper_ABI, signer);
+}
 
 // Elements from HTML
 const token0AddressInput = document.getElementById("token0Address");
