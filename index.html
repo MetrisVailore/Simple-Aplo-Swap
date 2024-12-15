@@ -4,33 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MEWAP</title>
-    <link rel="stylesheet" href="styles.css"> <!-- Подключение стилей -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <h1>MEWAP</h1>
+        
+        <button id="connectWalletBtn">Connect Wallet</button>
+        
+        <div id="poolForm" class="form-group">
+            <h3>Create Liquidity Pool</h3>
+            <input id="token0Address" type="text" placeholder="Token0 Address">
+            <input id="token1Address" type="text" placeholder="Token1 Address">
+            <input id="amount0" type="number" placeholder="Amount of Token0">
+            <input id="amount1" type="number" placeholder="Amount of Token1">
+            <input id="swapFee" type="number" placeholder="Swap Fee (in basis points)">
+            <button id="createPoolBtn">Create Pool</button>
+        </div>
 
-        <label for="tokenAddressA">Token A Address:</label>
-        <input type="text" id="tokenAddressA" placeholder="Token A Address" />
-        <br />
+        <div id="swapForm" class="form-group">
+            <h3>Swap Tokens</h3>
+            <input id="tokenInAddress" type="text" placeholder="Token to Swap">
+            <input id="amountIn" type="number" placeholder="Amount to Swap">
+            <input id="token0AddressSwap" type="text" placeholder="Token0 Address for Pool (Swap)">
+            <input id="token1AddressSwap" type="text" placeholder="Token1 Address for Pool (Swap)">
+            <button id="swapBtn">Swap Tokens</button>
+        </div>
 
-        <label for="tokenAddressB">Token B Address:</label>
-        <input type="text" id="tokenAddressB" placeholder="Token B Address" />
-        <br />
-
-        <label for="amountIn">Amount to Swap (Token A):</label>
-        <input type="number" id="amountIn" placeholder="Amount" />
-        <br />
-
-        <label for="poolId">Pool ID:</label>
-        <input type="text" id="poolId" placeholder="Pool ID (hex)" />
-        <br />
-
-        <button id="swapButton">Swap Tokens</button>
-        <p id="status"></p>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.0/dist/ethers.umd.min.js"></script>
-    <script src="script.js"></script> <!-- Подключение JavaScript -->
+    
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.5.0/dist/ethers.umd.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
