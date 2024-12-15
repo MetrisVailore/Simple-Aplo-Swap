@@ -1,74 +1,106 @@
-// Проверяем, что MetaMask подключен
-if (typeof window.ethereum !== 'undefined') {
-    console.log('MetaMask is installed!');
+const customRpcUrl = 'https://pub1.aplocoin.com'; // Замените на URL вашего RPC
+const expectedChainId = 1234; // Укажите Chain ID вашей кастомной сети
+const swapperContractAddress = '0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB'; // Адрес вашего контракта swap
+
+// Подключаемся к кастомной сети через ethers.js
+const provider = new ethers.providers.JsonRpcProvider(customRpcUrl);
+
+// Подключение с MetaMask
+async function connectWallet() {
+    if (window.ethereum) {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const signer = provider.getSigner();
+        return { signer, accounts };
+    } else {
+        alert("MetaMask not detected. Please install MetaMask.");
+        return null;
+    }
 }
 
-let provider = new ethers.providers.Web3Provider(window.ethereum);
-let signer = provider.getSigner();
-
-// Адрес контракта Swapper по умолчанию
-const swapperAddress = '0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB';  // Замените на реальный адрес контракта Swapper
-
-// ABI для ERC20 токенов (для approve)
-const erc20ABI = [
-    "function approve(address spender, uint256 amount) public returns (bool)"
-];
-
-// ABI для контракта Swapper
-const swapperABI = [
-    "function swap(address tokenIn, uint256 amountIn, address tokenOut, uint256 minAmountOut) external",
-    "function getSwapAmount(address tokenIn, uint256 amountIn, address tokenOut) external view returns (uint256)"
-];
-
-// Функция для получения значений из формы
-function getFormData() {
-    const tokenIn = document.getElementById('tokenIn').value; // Адрес токена для ввода
-    const tokenOut = document.getElementById('tokenOut').value; // Адрес токена для обмена
-    const amountIn = ethers.utils.parseUnits(document.getElementById('amountIn').value, 18); // Сумма токенов для обмена
-    const minAmountOut = ethers.utils.parseUnits(document.getElementById('minAmountOut').value, 18); // Минимум для обмена
-    return { tokenIn, tokenOut, amountIn, minAmountOut };
+// Функция для проверки сети
+async function checkNetwork() {
+    const network = await provider.getNetwork();
+    if (network.chainId !== expectedChainId) {
+        alert("You are connected to the wrong network! Please switch to the correct network.");
+        return false;
+    }
+    return true;
 }
 
 // Функция для approve токенов
-async function approveTokens(tokenAddress, spender, amount) {
-    const tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
-    
+async function approveToken(tokenAddress, spenderAddress, amount) {
+    const { signer, accounts } = await connectWallet();
+    if (!signer) return;
+
+    const tokenABI = [
+        "function approve(address spender, uint256 amount) public returns (bool)"
+    ];
+
+    const tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+
     try {
-        const tx = await tokenContract.approve(spender, amount);
-        await tx.wait();
-        console.log(`Approved ${amount} tokens for ${spender}`);
+        const isNetworkValid = await checkNetwork();
+        if (!isNetworkValid) return;
+
+        const parsedAmount = ethers.utils.parseUnits(amount.toString(), 18); // 18 десятичных знаков
+
+        // Отправляем approve транзакцию
+        const tx = await tokenContract.approve(spenderAddress, parsedAmount);
+        document.getElementById('status').textContent = "Approval sent, waiting for confirmation...";
+
+        await tx.wait(); // Ожидаем завершения транзакции
+
+        document.getElementById('status').textContent = "Approval successful!";
     } catch (error) {
-        console.error('Approve failed', error);
+        console.error("Approval failed:", error);
+        document.getElementById('status').textContent = "Approval failed. Check the console for details.";
     }
 }
 
-// Функция для обмена токенов
-async function swapTokens(tokenIn, amountIn, tokenOut, minAmountOut) {
-    const swapperContract = new ethers.Contract(swapperAddress, swapperABI, signer);
-    
+// Функция для обмена токенов через Swapper контракт
+async function swapTokens(poolId, tokenA, tokenB, amountIn) {
+    const { signer, accounts } = await connectWallet();
+    if (!signer) return;
+
+    const swapperABI = [
+        "function swap(bytes32 poolId, address tokenIn, uint256 amountIn) public"
+    ];
+
+    const swapperContract = new ethers.Contract(swapperContractAddress, swapperABI, signer);
+
     try {
-        const tx = await swapperContract.swap(tokenIn, amountIn, tokenOut, minAmountOut);
-        await tx.wait();
-        console.log(`Swapped ${amountIn} tokens from ${tokenIn} to ${tokenOut}`);
+        const isNetworkValid = await checkNetwork();
+        if (!isNetworkValid) return;
+
+        const parsedAmount = ethers.utils.parseUnits(amountIn.toString(), 18); // 18 десятичных знаков
+
+        // Сначала делаем approve для контракта swap
+        await approveToken(tokenA, swapperContractAddress, parsedAmount);
+
+        // Выполняем обмен
+        const tx = await swapperContract.swap(poolId, tokenA, parsedAmount);
+        document.getElementById('status').textContent = "Swap in progress...";
+
+        await tx.wait(); // Ожидаем завершения транзакции
+
+        document.getElementById('status').textContent = "Swap successful!";
     } catch (error) {
-        console.error('Swap failed', error);
+        console.error("Swap failed:", error);
+        document.getElementById('status').textContent = "Swap failed. Check the console for details.";
     }
 }
 
-// Обработчик нажатия кнопки для выполнения транзакции
-async function handleSwap() {
-    const { tokenIn, tokenOut, amountIn, minAmountOut } = getFormData();
+// Обработчик события кнопки swap
+document.getElementById('swapButton').addEventListener('click', () => {
+    const tokenAddressA = document.getElementById('tokenAddressA').value;
+    const tokenAddressB = document.getElementById('tokenAddressB').value;
+    const amountIn = document.getElementById('amountIn').value;
+    const poolId = document.getElementById('poolId').value;
 
-    // Получаем аккаунт пользователя
-    const userAddress = await signer.getAddress();
-    console.log(`User Address: ${userAddress}`);
+    if (!tokenAddressA || !tokenAddressB || !amountIn || !poolId) {
+        alert("Please fill all fields.");
+        return;
+    }
 
-    // Утверждаем токены для контракта Swapper
-    await approveTokens(tokenIn, swapperAddress, amountIn);
-
-    // Выполняем обмен токенов
-    await swapTokens(tokenIn, amountIn, tokenOut, minAmountOut);
-}
-
-// Вешаем обработчик на кнопку
-document.getElementById('swapButton').addEventListener('click', handleSwap);
+    swapTokens(poolId, tokenAddressA, tokenAddressB, amountIn);
+});
