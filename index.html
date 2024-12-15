@@ -1,23 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MEWAP</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEWAP Swap</title>
 </head>
 <body>
-  <div class="container">
-    <h1>MEWAP</h1>
-    <div class="swap-form">
-      <input id="tokenIn" type="text" placeholder="Token In Address">
-      <input id="tokenOut" type="text" placeholder="Token Out Address">
-      <input id="amountIn" type="number" placeholder="Amount In">
-      <button id="swapButton">Swap</button>
-    </div>
-    <p id="status"></p>
-  </div>
-  <script src="script.js"></script>
+    <h1>MEWAP Swap</h1>
+
+    <form id="swapForm">
+        <label for="tokenIn">Token In (Address):</label>
+        <input type="text" id="tokenIn" placeholder="Enter token address for input" required><br>
+
+        <label for="tokenOut">Token Out (Address):</label>
+        <input type="text" id="tokenOut" placeholder="Enter token address for output" required><br>
+
+        <label for="amountIn">Amount In (Token amount to swap):</label>
+        <input type="number" id="amountIn" placeholder="Enter amount to swap" required><br>
+
+        <label for="minAmountOut">Minimum Amount Out (Token amount to receive):</label>
+        <input type="number" id="minAmountOut" placeholder="Enter minimum amount out" required><br>
+
+        <button type="button" id="swapButton">Swap Tokens</button>
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.0/dist/ethers.umd.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
