@@ -1,195 +1,140 @@
-// Swapper contract ABI
-const Swapper_ABI = [
-  {
-    "inputs": [
-      { "internalType": "address", "name": "token0", "type": "address" },
-      { "internalType": "address", "name": "token1", "type": "address" },
-      { "internalType": "uint256", "name": "amount0", "type": "uint256" },
-      { "internalType": "uint256", "name": "amount1", "type": "uint256" },
-      { "internalType": "uint256", "name": "swapFee", "type": "uint256" }
-    ],
-    "name": "createPool",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "bytes32", "name": "poolId", "type": "bytes32" },
-      { "internalType": "address", "name": "tokenIn", "type": "address" },
-      { "internalType": "uint256", "name": "amountIn", "type": "uint256" }
-    ],
-    "name": "swap",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  // Add other functions...
+const swapperABI = [
+    {
+        "inputs": [
+            { "internalType": "address", "name": "token0", "type": "address" },
+            { "internalType": "address", "name": "token1", "type": "address" },
+            { "internalType": "uint256", "name": "amount0", "type": "uint256" },
+            { "internalType": "uint256", "name": "amount1", "type": "uint256" },
+            { "internalType": "uint256", "name": "swapFee", "type": "uint256" }
+        ],
+        "name": "createPool",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "address", "name": "token0", "type": "address" },
+            { "internalType": "address", "name": "token1", "type": "address" }
+        ],
+        "name": "getPoolId",
+        "outputs": [
+            { "internalType": "bytes32", "name": "", "type": "bytes32" }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "bytes32", "name": "poolId", "type": "bytes32" },
+            { "internalType": "address", "name": "tokenIn", "type": "address" },
+            { "internalType": "uint256", "name": "amountIn", "type": "uint256" }
+        ],
+        "name": "swap",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "address", "name": "tokenIn", "type": "address" },
+            { "internalType": "address", "name": "spender", "type": "address" },
+            { "internalType": "uint256", "name": "amount", "type": "uint256" }
+        ],
+        "name": "approve",
+        "outputs": [
+            { "internalType": "bool", "name": "", "type": "bool" }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
 ];
 
-// Set up the web3 provider (e.g., MetaMask)
-let provider;
+
+const provider = new ethers.BrowserProvider(window.ethereum);
 let signer;
-if (window.ethereum) {
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  try {
-    // Request account access
-    await window.ethereum.request({ method: "eth_requestAccounts" });
-
-    // Get signer
-    signer = provider.getSigner();  // This is the correct way, no need for `.then()`
-    console.log("Signer is: ", signer);
-  } catch (err) {
-    console.error("User denied account access");
-    alert("Please connect your MetaMask wallet.");
-  }
-} else {
-  alert("Please install MetaMask!");
-}
-
-// Contract address (replace with the deployed contract address)
-const swapperAddress = "0xYourContractAddressHere";  // Replace with actual contract address
-
-// Create the contract instance
 let swapperContract;
-if (signer) {
-  swapperContract = new ethers.Contract(swapperAddress, Swapper_ABI, signer);
+
+async function connectWallet() {
+    if (window.ethereum) {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        signer = await provider.getSigner();
+        console.log('Connected wallet address:', await signer.getAddress());
+    } else {
+        alert('Please install MetaMask!');
+    }
 }
 
-// Elements from HTML
-const token0AddressInput = document.getElementById("token0Address");
-const token1AddressInput = document.getElementById("token1Address");
-const amount0Input = document.getElementById("amount0");
-const amount1Input = document.getElementById("amount1");
-const swapButton = document.getElementById("swapButton");
+async function initContract() {
+    const swapperAddress = 'YOUR_DEPLOYED_CONTRACT_ADDRESS';  // Replace with your contract address
+    swapperContract = new ethers.Contract(swapperAddress, swapperABI, signer);
+}
 
-// Add event listener for swapping
-swapButton.addEventListener("click", async function() {
-  const token0Address = token0AddressInput.value;
-  const token1Address = token1AddressInput.value;
-  const amount0 = ethers.utils.parseUnits(amount0Input.value, 18);  // Assuming 18 decimals for the token
-  const amount1 = ethers.utils.parseUnits(amount1Input.value, 18);  // Assuming 18 decimals for the token
+async function createPool(token0Address, token1Address, amount0, amount1, swapFee) {
+    try {
+        const tx = await swapperContract.createPool(
+            token0Address, 
+            token1Address, 
+            ethers.utils.parseUnits(amount0, 18), // Assume 18 decimals for token0
+            ethers.utils.parseUnits(amount1, 18), // Assume 18 decimals for token1
+            swapFee
+        );
+        console.log('Pool created!', tx);
+        await tx.wait();
+    } catch (error) {
+        console.error('Error creating pool:', error);
+    }
+}
 
-  try {
-    // Approve tokens for the contract to transfer
-    const token0Contract = new ethers.Contract(token0Address, [
-      "function approve(address spender, uint256 amount) public returns (bool)"
-    ], signer);
+async function swapTokens(tokenInAddress, amountIn, token0Address, token1Address) {
+    try {
+        const poolId = await getPoolId(token0Address, token1Address);
+        const tokenIn = new ethers.Contract(tokenInAddress, ['function approve(address spender, uint256 amount)'], signer);
 
-    const token1Contract = new ethers.Contract(token1Address, [
-      "function approve(address spender, uint256 amount) public returns (bool)"
-    ], signer);
+        const approvalTx = await tokenIn.approve(swapperContract.address, ethers.utils.parseUnits(amountIn, 18));
+        console.log('Approval transaction sent:', approvalTx);
+        await approvalTx.wait();
 
-    const approvalAmount0 = amount0;
-    const approvalAmount1 = amount1;
+        const swapTx = await swapperContract.swap(poolId, tokenInAddress, ethers.utils.parseUnits(amountIn, 18));
+        console.log('Swap successful!', swapTx);
+        await swapTx.wait();
+    } catch (error) {
+        console.error('Error swapping tokens:', error);
+    }
+}
 
-    await token0Contract.approve(swapperAddress, approvalAmount0);
-    await token1Contract.approve(swapperAddress, approvalAmount1);
-    console.log("Tokens approved!");
+async function getPoolId(token0Address, token1Address) {
+    try {
+        const poolId = await swapperContract.getPoolId(token0Address, token1Address);
+        console.log('Pool ID:', poolId);
+        return poolId;
+    } catch (error) {
+        console.error('Error getting pool ID:', error);
+    }
+}
 
-    // Fetch the poolId using the two tokens
-    const poolId = await swapperContract.getPoolId(token0Address, token1Address);
-
-    // Perform the swap
-    await swapperContract.swap(poolId, token0Address, amount0);
-    alert("Swap successful!");
-  } catch (error) {
-    console.error("Swap failed:", error);
-    alert("Swap failed: " + error.message);
-  }
+// Connect the wallet and initialize the contract
+document.getElementById('connectWalletBtn').addEventListener('click', async () => {
+    await connectWallet();
+    await initContract();
 });
 
-// Add Token to allowed tokens (for owner only)
-async function addTokenToContract(tokenAddress) {
-  try {
-    await swapperContract.addToken(tokenAddress);
-    alert("Token added successfully!");
-  } catch (error) {
-    console.error("Error adding token:", error);
-    alert("Error adding token: " + error.message);
-  }
-}
+// Example usage for creating a pool and swapping tokens
+document.getElementById('createPoolBtn').addEventListener('click', async () => {
+    const token0 = document.getElementById('token0Address').value;
+    const token1 = document.getElementById('token1Address').value;
+    const amount0 = document.getElementById('amount0').value;
+    const amount1 = document.getElementById('amount1').value;
+    const swapFee = document.getElementById('swapFee').value;
 
-
-// Set up the web3 provider (e.g., MetaMask)
-let provider;
-let signer;
-if (window.ethereum) {
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  try {
-    // Request account access
-    await window.ethereum.request({ method: "eth_requestAccounts" });
-
-    // Get signer
-    signer = provider.getSigner();  // This is the correct way, no need for `.then()`
-    console.log("Signer is: ", signer);
-  } catch (err) {
-    console.error("User denied account access");
-    alert("Please connect your MetaMask wallet.");
-  }
-} else {
-  alert("Please install MetaMask!");
-}
-
-// Contract address (replace with the deployed contract address)
-const swapperAddress = "0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB";  // Replace with actual contract address
-
-// Create the contract instance
-let swapperContract;
-if (signer) {
-  swapperContract = new ethers.Contract(swapperAddress, Swapper_ABI, signer);
-}
-
-// Elements from HTML
-const token0AddressInput = document.getElementById("token0Address");
-const token1AddressInput = document.getElementById("token1Address");
-const amount0Input = document.getElementById("amount0");
-const amount1Input = document.getElementById("amount1");
-const swapButton = document.getElementById("swapButton");
-
-// Add event listener for swapping
-swapButton.addEventListener("click", async function() {
-  const token0Address = token0AddressInput.value;
-  const token1Address = token1AddressInput.value;
-  const amount0 = ethers.utils.parseUnits(amount0Input.value, 18);  // Assuming 18 decimals for the token
-  const amount1 = ethers.utils.parseUnits(amount1Input.value, 18);  // Assuming 18 decimals for the token
-
-  try {
-    // Approve tokens for the contract to transfer
-    const token0Contract = new ethers.Contract(token0Address, [
-      "function approve(address spender, uint256 amount) public returns (bool)"
-    ], signer);
-
-    const token1Contract = new ethers.Contract(token1Address, [
-      "function approve(address spender, uint256 amount) public returns (bool)"
-    ], signer);
-
-    const approvalAmount0 = amount0;
-    const approvalAmount1 = amount1;
-
-    await token0Contract.approve(swapperAddress, approvalAmount0);
-    await token1Contract.approve(swapperAddress, approvalAmount1);
-    console.log("Tokens approved!");
-
-    // Fetch the poolId using the two tokens
-    const poolId = await swapperContract.getPoolId(token0Address, token1Address);
-
-    // Perform the swap
-    await swapperContract.swap(poolId, token0Address, amount0);
-    alert("Swap successful!");
-  } catch (error) {
-    console.error("Swap failed:", error);
-    alert("Swap failed: " + error.message);
-  }
+    await createPool(token0, token1, amount0, amount1, swapFee);
 });
 
-// Add Token to allowed tokens (for owner only)
-async function addTokenToContract(tokenAddress) {
-  try {
-    await swapperContract.addToken(tokenAddress);
-    alert("Token added successfully!");
-  } catch (error) {
-    console.error("Error adding token:", error);
-    alert("Error adding token: " + error.message);
-  }
-}
+document.getElementById('swapBtn').addEventListener('click', async () => {
+    const tokenInAddress = document.getElementById('tokenInAddress').value;
+    const amountIn = document.getElementById('amountIn').value;
+    const token0Address = document.getElementById('token0AddressSwap').value;
+    const token1Address = document.getElementById('token1AddressSwap').value;
+
+    await swapTokens(tokenInAddress, amountIn, token0Address, token1Address);
+});
