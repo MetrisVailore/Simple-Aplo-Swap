@@ -227,19 +227,23 @@ const Swapper_ABI = [
   }
 ];
 
-// Set up the web3 provider (e.g., Metamask)
+// Set up the web3 provider (e.g., MetaMask)
 let provider;
 if (window.ethereum) {
   provider = new ethers.providers.Web3Provider(window.ethereum);
+  try {
+    // Requesting account access (this triggers MetaMask's popup)
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+  } catch (err) {
+    console.error("User denied account access");
+    alert("Please connect your MetaMask wallet.");
+  }
 } else {
   alert("Please install MetaMask!");
 }
 
 // Get the signer (user's wallet)
-let signer;
-provider.getSigner().then(function (userSigner) {
-  signer = userSigner;
-});
+let signer = provider.getSigner();
 
 // Contract address (replace with the deployed contract address)
 const swapperAddress = "0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB";  // Replace with actual contract address
