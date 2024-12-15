@@ -66,7 +66,7 @@ async function connectWallet() {
 }
 
 async function initContract() {
-    const swapperAddress = 'YOUR_DEPLOYED_CONTRACT_ADDRESS';  // Replace with your contract address
+    const swapperAddress = '0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB';  // Replace with your contract address
     swapperContract = new ethers.Contract(swapperAddress, swapperABI, signer);
 }
 
