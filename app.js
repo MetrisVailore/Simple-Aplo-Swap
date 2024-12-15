@@ -170,21 +170,25 @@ const contractABI = const contractABI = [
     }
 ];
 
-
 const contract = new web3.eth.Contract(contractABI, contractAddress);
 
+const tokenInSelect = document.getElementById('tokenIn');
+const tokenOutSelect = document.getElementById('tokenOut');
+const tokenInAmount = document.getElementById('tokenInAmount');
+const tokenOutAmount = document.getElementById('tokenOutAmount');
+const swapFeeElement = document.getElementById('swapFee');
+const liquidityInfo = document.getElementById('liquidityInfo');
+const swapBtn = document.getElementById('swapBtn');
+
+// Данные токенов для выбора (пример)
+const tokens = [
+    { name: 'Token1', address: '0xToken1Address' },
+    { name: 'Token2', address: '0xToken2Address' },
+];
+
+// Инициализация интерфейса
 async function init() {
-    // Получить список токенов из контракта
-    const tokenInSelect = document.getElementById('tokenIn');
-    const tokenOutSelect = document.getElementById('tokenOut');
-
-    // Замените на реальные данные ваших токенов
-    const tokens = [
-        { name: 'Token1', address: '0xToken1Address' },
-        { name: 'Token2', address: '0xToken2Address' }
-    ];
-
-    // Заполнение селектов
+    // Заполняем выпадающие списки токенов
     tokens.forEach(token => {
         const optionIn = document.createElement('option');
         optionIn.value = token.address;
@@ -197,25 +201,30 @@ async function init() {
         tokenOutSelect.appendChild(optionOut);
     });
 
-    // Получение ликвидности пула
+    // Получаем данные по пулу
     const poolId = web3.utils.soliditySha3(tokens[0].address, tokens[1].address);
     const pool = await contract.methods.pools(poolId).call();
 
-    // Отображение информации о ликвидности
-    document.getElementById('liquidityInfo').textContent = `Token0: ${pool.token0Reserve}, Token1: ${pool.token1Reserve}`;
+    // Отображаем информацию о ликвидности
+    liquidityInfo.textContent = `Token0: ${pool.token0Reserve}, Token1: ${pool.token1Reserve}`;
+    swapFeeElement.textContent = `${pool.swapFee / 100}%`;
 
-    // Обработка обмена
-    document.getElementById('swapBtn').addEventListener('click', async () => {
+    // Обработчик ввода количества для обмена
+    tokenInAmount.addEventListener('input', async () => {
+        const amountIn = tokenInAmount.value;
+        const pool = await contract.methods.pools(poolId).call();
+        const amountOut = await contract.methods.getSwapAmount(amountIn, pool.token0Reserve, pool.token1Reserve, pool.swapFee).call();
+        tokenOutAmount.value = amountOut;
+    });
+
+    // Обработчик обмена
+    swapBtn.addEventListener('click', async () => {
         const tokenIn = tokenInSelect.value;
         const tokenOut = tokenOutSelect.value;
-        const amountIn = document.getElementById('amountIn').value;
+        const amountIn = tokenInAmount.value;
 
         if (tokenIn && tokenOut && amountIn) {
-            // Получение суммы для обмена (с расчетом комиссии)
-            const amountOut = await contract.methods.getSwapAmount(amountIn, pool.token0Reserve, pool.token1Reserve, pool.swapFee).call();
-            document.getElementById('amountOut').value = amountOut;
-
-            // Выполнение обмена
+            // Выполнение обмена через контракт
             await contract.methods.swap(poolId, tokenIn, amountIn).send({ from: ethereum.selectedAddress });
         }
     });
