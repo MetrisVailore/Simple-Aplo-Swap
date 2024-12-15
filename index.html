@@ -3,32 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swap Interface</title>
+    <title>DEX Swap Interface</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <h1>Swap Tokens</h1>
         <div class="swap-interface">
-            <div class="token-selector">
-                <label for="tokenIn">Select Token to Swap</label>
-                <select id="tokenIn">
-                    <!-- Populate with token options -->
-                </select>
-                <input type="number" id="amountIn" placeholder="Amount to Swap">
-            </div>
-            <div class="swap-arrow">
-                <span>⇆</span>
-            </div>
-            <div class="token-selector">
-                <label for="tokenOut">Select Token to Receive</label>
-                <select id="tokenOut">
-                    <!-- Populate with token options -->
-                </select>
-                <input type="number" id="amountOut" disabled placeholder="Amount to Receive">
+            <div class="swap-container">
+                <div class="swap-token">
+                    <label for="tokenIn">From</label>
+                    <div class="token-selector">
+                        <input type="text" id="tokenInAmount" placeholder="Enter amount" class="amount-input">
+                        <select id="tokenIn" class="token-dropdown">
+                            <!-- Token options will be dynamically added -->
+                        </select>
+                    </div>
+                </div>
+                <div class="swap-arrow">
+                    <span>⇆</span>
+                </div>
+                <div class="swap-token">
+                    <label for="tokenOut">To</label>
+                    <div class="token-selector">
+                        <input type="text" id="tokenOutAmount" placeholder="Amount to receive" disabled class="amount-input">
+                        <select id="tokenOut" class="token-dropdown">
+                            <!-- Token options will be dynamically added -->
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="swap-info">
-                <p>Estimated Fee: <span id="swapFee">0.3%</span></p>
+                <p>Swap Fee: <span id="swapFee">0.3%</span></p>
                 <p>Liquidity: <span id="liquidityInfo">Loading...</span></p>
                 <button id="swapBtn">Swap</button>
             </div>
