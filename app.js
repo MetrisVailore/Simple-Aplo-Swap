@@ -1,10 +1,6 @@
-// Ethereum setup using ethers.js
-let provider;
-let signer;
-let contract;
-
-const contractAddress = "0x92f29B1c684DEdF33e3104BC8A58531aA833d31c"; // Replace with actual contract address
-const contractABI = [
+const web3 = new Web3(window.ethereum);
+const contractAddress = "0xYourContractAddress"; // Замените на ваш контракт
+const contractABI = const contractABI = [
     // Functions for swapping
     {
         "inputs": [
@@ -175,60 +171,54 @@ const contractABI = [
 ];
 
 
+const contract = new web3.eth.Contract(contractABI, contractAddress);
 
-async function connectWallet() {
-    if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        const address = await signer.getAddress();
-        document.getElementById("walletAddress").innerText = address;
-        contract = new ethers.Contract(contractAddress, contractABI, signer);
-    } else {
-        alert("Please install MetaMask!");
-    }
+async function init() {
+    // Получить список токенов из контракта
+    const tokenInSelect = document.getElementById('tokenIn');
+    const tokenOutSelect = document.getElementById('tokenOut');
+
+    // Замените на реальные данные ваших токенов
+    const tokens = [
+        { name: 'Token1', address: '0xToken1Address' },
+        { name: 'Token2', address: '0xToken2Address' }
+    ];
+
+    // Заполнение селектов
+    tokens.forEach(token => {
+        const optionIn = document.createElement('option');
+        optionIn.value = token.address;
+        optionIn.textContent = token.name;
+        tokenInSelect.appendChild(optionIn);
+
+        const optionOut = document.createElement('option');
+        optionOut.value = token.address;
+        optionOut.textContent = token.name;
+        tokenOutSelect.appendChild(optionOut);
+    });
+
+    // Получение ликвидности пула
+    const poolId = web3.utils.soliditySha3(tokens[0].address, tokens[1].address);
+    const pool = await contract.methods.pools(poolId).call();
+
+    // Отображение информации о ликвидности
+    document.getElementById('liquidityInfo').textContent = `Token0: ${pool.token0Reserve}, Token1: ${pool.token1Reserve}`;
+
+    // Обработка обмена
+    document.getElementById('swapBtn').addEventListener('click', async () => {
+        const tokenIn = tokenInSelect.value;
+        const tokenOut = tokenOutSelect.value;
+        const amountIn = document.getElementById('amountIn').value;
+
+        if (tokenIn && tokenOut && amountIn) {
+            // Получение суммы для обмена (с расчетом комиссии)
+            const amountOut = await contract.methods.getSwapAmount(amountIn, pool.token0Reserve, pool.token1Reserve, pool.swapFee).call();
+            document.getElementById('amountOut').value = amountOut;
+
+            // Выполнение обмена
+            await contract.methods.swap(poolId, tokenIn, amountIn).send({ from: ethereum.selectedAddress });
+        }
+    });
 }
 
-async function swapTokens() {
-    const token0 = document.getElementById("token0").value;
-    const token1 = document.getElementById("token1").value;
-    const amount0 = document.getElementById("amount0").value;
-
-    if (!token0 || !token1 || !amount0) {
-        alert("Please fill all the fields!");
-        return;
-    }
-
-    const tx = await contract.swap(
-        token0,
-        token1,
-        ethers.utils.parseUnits(amount0, 18) // Adjust decimals if needed
-    );
-    await tx.wait();
-    alert("Swap successful!");
-}
-
-async function addLiquidity() {
-    const token0 = document.getElementById("addToken0").value;
-    const token1 = document.getElementById("addToken1").value;
-    const amount0 = document.getElementById("amountAdd0").value;
-    const amount1 = document.getElementById("amountAdd1").value;
-
-    if (!token0 || !token1 || !amount0 || !amount1) {
-        alert("Please fill all the fields!");
-        return;
-    }
-
-    const tx = await contract.addLiquidity(
-        token0,
-        token1,
-        ethers.utils.parseUnits(amount0, 18), // Adjust decimals if needed
-        ethers.utils.parseUnits(amount1, 18)  // Adjust decimals if needed
-    );
-    await tx.wait();
-    alert("Liquidity added successfully!");
-}
-
-document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
-document.getElementById("swapBtn").addEventListener("click", swapTokens);
-document.getElementById("addLiquidityBtn").addEventListener("click", addLiquidity);
+window.onload = init;
