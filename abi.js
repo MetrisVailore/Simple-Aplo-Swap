@@ -1,39 +1,3 @@
-const tokenABI = [
-    {
-        "inputs": [
-            { "internalType": "string", "name": "name_", "type": "string" },
-            { "internalType": "string", "name": "symbol_", "type": "string" },
-            { "internalType": "uint256", "name": "totalSupply_", "type": "uint256" },
-            { "internalType": "address", "name": "recipient_", "type": "address" }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
-    },
-    {
-        "inputs": [],
-        "name": "name",
-        "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "symbol",
-        "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            { "internalType": "address", "name": "account", "type": "address" }
-        ],
-        "name": "balanceOf",
-        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-        "stateMutability": "view",
-        "type": "function"
-    }
-];
-
 const swapperABI = [
     {
         "inputs": [
