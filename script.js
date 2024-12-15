@@ -21,8 +21,8 @@ async function connectWallet() {
 async function checkNetwork() {
     const network = await provider.getNetwork();
     if (network.chainId !== expectedChainId) {
-        console.log(network.chainId);
-        console.log(expectedChainId);
+        alert(network.chainId);
+        alert(expectedChainId);
         alert("You are connected to the wrong network! Please switch to the correct network.");
         return false;
     }
