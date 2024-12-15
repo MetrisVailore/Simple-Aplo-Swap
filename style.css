@@ -1,46 +1,103 @@
+/* Основные стили страницы */
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f0f2f5;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #141414;
+    color: #ffffff;
 }
 
+/* Контейнер для интерфейса */
 .container {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  text-align: center;
+    max-width: 600px;
+    margin: 50px auto;
+    background-color: #1c1c1c;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
 }
 
-.swap-form input {
-  display: block;
-  margin: 10px auto;
-  padding: 10px;
-  width: 80%;
-  font-size: 16px;
+/* Заголовок */
+h1 {
+    text-align: center;
+    font-size: 28px;
+    color: #ffffff;
+    margin-bottom: 20px;
 }
 
-.swap-form button {
-  padding: 10px 20px;
-  font-size: 16px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+/* Лейблы для инпутов */
+label {
+    font-size: 14px;
+    color: #a5a5a5;
+    margin-bottom: 8px;
+    display: inline-block;
 }
 
-.swap-form button:hover {
-  background: #0056b3;
+/* Входные поля (инпуты) */
+input {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #222222;
+    border: 1px solid #444444;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 16px;
 }
 
+/* При наведении на инпут */
+input:focus {
+    outline: none;
+    border-color: #00c8b0;
+    background-color: #333333;
+}
+
+/* Кнопка для отправки */
+button {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    background-color: #00c8b0;
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Эффект при наведении на кнопку */
+button:hover {
+    background-color: #00b39d;
+}
+
+/* Статус сообщения */
 #status {
-  margin-top: 20px;
-  font-size: 14px;
-  color: #333;
+    text-align: center;
+    font-size: 16px;
+    margin-top: 20px;
+    color: #a5a5a5;
+    word-wrap: break-word;
+}
+
+/* Разделитель между инпутами */
+input + input {
+    margin-top: 10px;
+}
+
+/* Флекс-контейнер для стилизации элементов в строку */
+.flex-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Стили для значков или дополнительной информации */
+.flex-container span {
+    font-size: 16px;
+    color: #888888;
+}
+
+/* Фиксированная стилизация для кнопки swap */
+button:active {
+    transform: scale(0.98);
 }
