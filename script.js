@@ -4,7 +4,7 @@ let contract;
 let userAccount;
 
 // Replace with your contract address and ABI
-const contractAddress = '0x857F841e2cd3adE01FcC63F4c9AEeBdAB659ebCB';
+const contractAddress = '0xcb8FfaAfFb6EeBc1A1fA76DD71615A74a8b878f6';
 const abi = [
     // Add your ABI here (same as before)
 ];
