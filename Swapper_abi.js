@@ -1,6 +1,7 @@
 const swapperABI = [
     {
         "inputs": [
+            { "internalType": "address", "name": "wethAddress", "type": "address" },
             { "internalType": "uint256", "name": "initialMinimumLiquidity", "type": "uint256" },
             { "internalType": "uint256", "name": "initialMaxSwapFee", "type": "uint256" }
         ],
@@ -17,13 +18,6 @@ const swapperABI = [
     {
         "inputs": [{ "internalType": "uint256", "name": "newMaxSwapFee", "type": "uint256" }],
         "name": "setMaxSwapFee",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [{ "internalType": "address", "name": "tokenAddress", "type": "address" }],
-        "name": "addToken",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -105,5 +99,16 @@ const swapperABI = [
         "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
         "stateMutability": "pure",
         "type": "function"
+    },
+    {
+        "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }],
+        "name": "getPoolsByOwner",
+        "outputs": [{ "internalType": "bytes32[]", "name": "", "type": "bytes32[]" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "stateMutability": "payable",
+        "type": "receive"
     }
 ];
