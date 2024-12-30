@@ -110,5 +110,19 @@ const swapperABI = [
     {
         "stateMutability": "payable",
         "type": "receive"
+    },
+    {
+        "inputs": [{ "internalType": "bytes32", "name": "poolId", "type": "bytes32" }],
+        "name": "pools",
+        "outputs": [
+            { "internalType": "uint256", "name": "token0Reserve", "type": "uint256" },
+            { "internalType": "uint256", "name": "token1Reserve", "type": "uint256" },
+            { "internalType": "address", "name": "token0", "type": "address" },
+            { "internalType": "address", "name": "token1", "type": "address" },
+            { "internalType": "address", "name": "owner", "type": "address" },
+            { "internalType": "uint256", "name": "swapFee", "type": "uint256" }
+        ],
+        "stateMutability": "view",
+        "type": "function"
     }
 ];
