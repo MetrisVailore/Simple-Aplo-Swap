@@ -27,6 +27,8 @@ contract Swapper is Ownable {
         uint256 token1Reserve;
         address token0;
         address token1;
+        string token0Name;
+        string token1Name;
         address owner;
         uint256 swapFee;
     }
@@ -115,6 +117,9 @@ contract Swapper is Ownable {
         bytes32 poolId = getPoolId(token0, token1);
         require(pools[poolId].token0 == address(0), "Pool already exists");
 
+        string memory token0Name = ERC20(token0).name();
+        string memory token1Name = ERC20(token1).name();
+
         // Handle WETH deposits
         if (token0 == address(weth) && msg.value > 0) {
             weth.deposit{value: msg.value}();
@@ -141,6 +146,8 @@ contract Swapper is Ownable {
             token1Reserve: amount1,
             token0: token0,
             token1: token1,
+            token0Name: token0Name,
+            token1Name: token1Name,
             owner: msg.sender,
             swapFee: swapFee
         });
