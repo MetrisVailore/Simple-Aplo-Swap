@@ -115,6 +115,14 @@ contract Swapper is Ownable {
         bytes32 poolId = getPoolId(token0, token1);
         require(pools[poolId].token0 == address(0), "Pool already exists");
 
+        if (token0 == address(weth)){
+            require(msg.value > 0, "Waplo amount0 reserve must be > 0");
+        }
+
+        if (token1 == address(weth)){
+            require(msg.value > 0, "Waplo amount1 reserve must be > 0");
+        }
+
         // Handle WETH deposits
         if (token0 == address(weth) && msg.value > 0) {
             weth.deposit{value: msg.value}();
