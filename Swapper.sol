@@ -35,6 +35,8 @@ contract Swapper is Ownable {
     mapping(bytes32 => LiquidityPool) public pools;
     mapping(address => bytes32[]) public userPools;
 
+    bytes32[] public poolIds;
+
     uint256 public minimumLiquidity;
     uint256 public maxSwapFee;
     uint256 public maxDevFee;
@@ -144,6 +146,7 @@ contract Swapper is Ownable {
         });
 
         userPools[msg.sender].push(poolId);
+        poolIds.push(poolId);
     }
 
     // ========================= Liquidity Functions =========================
@@ -348,6 +351,16 @@ contract Swapper is Ownable {
     {
         return userPools[owner];
     }
+
+    function getAllPools() external view returns (LiquidityPool[] memory, bytes32[] memory) {
+        uint256 poolCount = poolIds.length;
+        LiquidityPool[] memory allPools = new LiquidityPool[](poolCount);
+        for (uint256 i = 0; i < poolCount; i++) {
+            allPools[i] = pools[poolIds[i]];
+        }
+        return (allPools, poolIds);
+    }
+
 
     receive() external payable {
         require(msg.sender == address(weth), "Direct ETH deposits not allowed");
