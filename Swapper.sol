@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IWETH9 {
     function deposit() external payable;
+
     function withdraw(uint256) external;
 }
 
@@ -36,26 +37,50 @@ contract Swapper is Ownable {
 
     uint256 public minimumLiquidity;
     uint256 public maxSwapFee;
+    uint256 public maxDevFee;
+
+    address public devAddress;
+    uint256 public devFee;
 
     constructor(
         address wethAddress,
         uint256 initialMinimumLiquidity,
-        uint256 initialMaxSwapFee
+        uint256 initialMaxSwapFee,
+        uint256 initialMaxDevFee,
+        address initialDevAddress
     ) {
         weth = IWETH9(wethAddress);
         minimumLiquidity = initialMinimumLiquidity;
         maxSwapFee = initialMaxSwapFee;
+        maxDevFee = initialMaxDevFee;
+        devAddress = initialDevAddress;
     }
 
     // ========================= Admin Functions =========================
-    function setMinimumLiquidity(uint256 newMinimumLiquidity) external onlyOwner {
-        require(newMinimumLiquidity > 0, "Minimum liquidity must be greater than 0");
+    function setMinimumLiquidity(uint256 newMinimumLiquidity)
+        external
+        onlyOwner
+    {
+        require(
+            newMinimumLiquidity > 0,
+            "Minimum liquidity must be greater than 0"
+        );
         minimumLiquidity = newMinimumLiquidity;
     }
 
     function setMaxSwapFee(uint256 newMaxSwapFee) external onlyOwner {
         require(newMaxSwapFee <= 10000, "Max swap fee must be <= 100%");
         maxSwapFee = newMaxSwapFee;
+    }
+
+    function setMaxDevFee(uint256 newMaxDevFee) external onlyOwner {
+        require(newMaxDevFee <= 10000, "Max dev fee must be <= 100%");
+        maxDevFee = newMaxDevFee;
+    }
+
+    function setDevAddress(address newDevAddress) external onlyOwner {
+        require(newDevAddress != address(0), "Dev address cannot be zero");
+        devAddress = newDevAddress;
     }
 
     function setPoolSwapFee(bytes32 poolId, uint256 newSwapFee) external {
@@ -65,6 +90,11 @@ contract Swapper is Ownable {
         require(newSwapFee <= maxSwapFee, "Swap fee exceeds max limit");
 
         pool.swapFee = newSwapFee;
+    }
+
+    function setDevFee(uint256 newDevFee) external onlyOwner {
+        require(newDevFee <= maxDevFee, "Dev fee exceeds max limit");
+        devFee = newDevFee;
     }
 
     // ========================= Pool Management =========================
@@ -125,6 +155,14 @@ contract Swapper is Ownable {
         LiquidityPool storage pool = pools[poolId];
         require(pool.token0 != address(0), "Pool does not exist");
 
+        if (pool.token0 == address(weth)){
+            require(msg.value > 0, "Waplo amount0 reserve must be > 0");
+        }
+
+        if (pool.token1 == address(weth)){
+            require(msg.value > 0, "Waplo amount1 reserve must be > 0");
+        }
+
         if (pool.token0 == address(weth) && msg.value > 0) {
             weth.deposit{value: msg.value}();
             amount0 = msg.value;
@@ -135,24 +173,39 @@ contract Swapper is Ownable {
             amount1 = msg.value;
         }
 
-        uint256 expectedAmount1 = (amount0 * pool.token1Reserve) / pool.token0Reserve;
-        require(amount1 == expectedAmount1, "Liquidity must be added proportionally");
+        if (pool.token0Reserve == 0 || pool.token1Reserve == 0) {
+            // Если резервы пула пусты, разрешаем добавление ликвидности без пропорции
+            pool.token0Reserve += amount0;
+            pool.token1Reserve += amount1;
+        } else {
+        // Вычисляем пропорцию для добавления ликвидности
+            uint256 expectedAmount1 = (amount0 * pool.token1Reserve) / pool.token0Reserve;
+            require(amount1 == expectedAmount1, "Liquidity must be added proportionally");
+        
+            pool.token0Reserve += amount0;
+            pool.token1Reserve += amount1;
+        }
 
         if (pool.token0 != address(weth)) {
             require(
-                IERC20(pool.token0).transferFrom(msg.sender, address(this), amount0),
+                IERC20(pool.token0).transferFrom(
+                    msg.sender,
+                    address(this),
+                    amount0
+                ),
                 "Token0 transfer failed"
             );
         }
         if (pool.token1 != address(weth)) {
             require(
-                IERC20(pool.token1).transferFrom(msg.sender, address(this), amount1),
+                IERC20(pool.token1).transferFrom(
+                    msg.sender,
+                    address(this),
+                    amount1
+                ),
                 "Token1 transfer failed"
             );
         }
-
-        pool.token0Reserve += amount0;
-        pool.token1Reserve += amount1;
     }
 
     function removeLiquidity(
@@ -162,7 +215,10 @@ contract Swapper is Ownable {
     ) external {
         LiquidityPool storage pool = pools[poolId];
         require(pool.token0 != address(0), "Pool does not exist");
-        require(msg.sender == pool.owner, "Only pool owner can remove liquidity");
+        require(
+            msg.sender == pool.owner,
+            "Only pool owner can remove liquidity"
+        );
 
         require(pool.token0Reserve >= amount0, "Not enough Token0 reserve");
         require(pool.token1Reserve >= amount1, "Not enough Token1 reserve");
@@ -174,14 +230,20 @@ contract Swapper is Ownable {
             weth.withdraw(amount0);
             payable(msg.sender).transfer(amount0);
         } else {
-            require(IERC20(pool.token0).transfer(msg.sender, amount0), "Token0 transfer failed");
+            require(
+                IERC20(pool.token0).transfer(msg.sender, amount0),
+                "Token0 transfer failed"
+            );
         }
 
         if (pool.token1 == address(weth)) {
             weth.withdraw(amount1);
             payable(msg.sender).transfer(amount1);
         } else {
-            require(IERC20(pool.token1).transfer(msg.sender, amount1), "Token1 transfer failed");
+            require(
+                IERC20(pool.token1).transfer(msg.sender, amount1),
+                "Token1 transfer failed"
+            );
         }
     }
 
@@ -194,25 +256,55 @@ contract Swapper is Ownable {
         LiquidityPool storage pool = pools[poolId];
         require(pool.token0 != address(0), "Pool does not exist");
 
-        (uint256 inputReserve, uint256 outputReserve, address tokenOut) = tokenIn == pool.token0
-            ? (pool.token0Reserve, pool.token1Reserve, pool.token1)
-            : (pool.token1Reserve, pool.token0Reserve, pool.token0);
+        (
+            uint256 inputReserve,
+            uint256 outputReserve,
+            address tokenOut
+        ) = tokenIn == pool.token0
+                ? (pool.token0Reserve, pool.token1Reserve, pool.token1)
+                : (pool.token1Reserve, pool.token0Reserve, pool.token0);
 
-        uint256 amountOut = getSwapAmount(amountIn, inputReserve, outputReserve, pool.swapFee);
+        uint256 totalFee = pool.swapFee + devFee;
+        require(totalFee <= 10000, "Total fee exceeds 100%");
+
+        uint256 amountOut = getSwapAmount(
+            amountIn,
+            inputReserve,
+            outputReserve,
+            totalFee
+        );
         require(amountOut > 0, "Insufficient output amount");
+
+        uint256 devAmount = (amountIn * devFee) / 10000;
+        uint256 amountInAfterFees = amountIn - devAmount;
 
         if (tokenIn == address(weth) && msg.value > 0) {
             weth.deposit{value: msg.value}();
             amountIn = msg.value;
         } else {
-            require(IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn), "Input token transfer failed");
+            require(
+                IERC20(tokenIn).transferFrom(
+                    msg.sender,
+                    address(this),
+                    amountIn
+                ),
+                "Input token transfer failed"
+            );
+        }
+
+        // Transfer dev fee
+        if (devAmount > 0) {
+            require(
+                IERC20(tokenIn).transfer(devAddress, devAmount),
+                "Dev fee transfer failed"
+            );
         }
 
         if (tokenIn == pool.token0) {
-            pool.token0Reserve += amountIn;
+            pool.token0Reserve += amountInAfterFees;
             pool.token1Reserve -= amountOut;
         } else {
-            pool.token1Reserve += amountIn;
+            pool.token1Reserve += amountInAfterFees;
             pool.token0Reserve -= amountOut;
         }
 
@@ -220,7 +312,10 @@ contract Swapper is Ownable {
             weth.withdraw(amountOut);
             payable(msg.sender).transfer(amountOut);
         } else {
-            require(IERC20(tokenOut).transfer(msg.sender, amountOut), "Output token transfer failed");
+            require(
+                IERC20(tokenOut).transfer(msg.sender, amountOut),
+                "Output token transfer failed"
+            );
         }
     }
 
@@ -232,16 +327,25 @@ contract Swapper is Ownable {
         uint256 swapFee
     ) public pure returns (uint256) {
         require(inputReserve > 0 && outputReserve > 0, "Invalid reserves");
-        uint256 inputAmountWithFee = inputAmount * (10000 - swapFee) / 10000;
-        uint256 amountOut = (inputAmountWithFee * outputReserve) / (inputReserve + inputAmountWithFee);
+        uint256 inputAmountWithFee = (inputAmount * (10000 - swapFee)) / 10000;
+        uint256 amountOut = (inputAmountWithFee * outputReserve) /
+            (inputReserve + inputAmountWithFee);
         return amountOut;
     }
 
-    function getPoolId(address token0, address token1) public pure returns (bytes32) {
+    function getPoolId(address token0, address token1)
+        public
+        pure
+        returns (bytes32)
+    {
         return keccak256(abi.encodePacked(token0, token1));
     }
 
-    function getPoolsByOwner(address owner) external view returns (bytes32[] memory) {
+    function getPoolsByOwner(address owner)
+        external
+        view
+        returns (bytes32[] memory)
+    {
         return userPools[owner];
     }
 
