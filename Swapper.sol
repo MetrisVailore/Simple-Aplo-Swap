@@ -116,11 +116,11 @@ contract Swapper is Ownable {
         require(pools[poolId].token0 == address(0), "Pool already exists");
 
         if (token0 == address(weth)){
-            require(msg.value > 0, "Waplo amount0 reserve must be > 0");
+            require(msg.value > amount0, "Msg value to swap Aplo to Waplo must be > amount0");
         }
 
         if (token1 == address(weth)){
-            require(msg.value > 0, "Waplo amount1 reserve must be > 0");
+            require(msg.value > amount1, "Msg value to swap Aplo to Waplo must be > amount1");
         }
 
         // Handle WETH deposits
@@ -167,11 +167,11 @@ contract Swapper is Ownable {
         require(pool.token0 != address(0), "Pool does not exist");
 
         if (pool.token0 == address(weth)){
-            require(msg.value > 0, "Waplo amount0 reserve must be > 0");
+            require(msg.value > amount0, "Msg value to swap Aplo to Waplo must be > amount0");
         }
 
         if (pool.token1 == address(weth)){
-            require(msg.value > 0, "Waplo amount1 reserve must be > 0");
+            require(msg.value > amount1, "Msg value to swap Aplo to Waplo must be > amount1");
         }
 
         if (pool.token0 == address(weth) && msg.value > 0) {
