@@ -163,15 +163,15 @@ SWAP_EVENT_SIGNATURE = '0x' + web3.keccak(text="Swap(address,bytes32,address,uin
 print("SWAP_EVENT_SIGNATURE: ", SWAP_EVENT_SIGNATURE)
 
 
-def fetch_events():
+def fetch_events(blocks_count):
     """Получает события Swap из блокчейна."""
     latest_block = web3.eth.block_number
     events = []
 
-    # Запрос событий за последние 10 000 блоков (можно изменить диапазон)
+    # Запрос событий за последние block_count блоков (можно изменить диапазон)
     try:
         logs = web3.eth.get_logs({
-            "fromBlock": latest_block - 10000,
+            "fromBlock": latest_block - blocks_count,
             "toBlock": latest_block,
             "address": SWAPPER_ADDRESS,  # Адрес контракта
             "topics": [SWAP_EVENT_SIGNATURE]  # Сигнатура события
