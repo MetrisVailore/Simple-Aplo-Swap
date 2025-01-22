@@ -37,6 +37,34 @@ contract Swapper is Ownable {
 
     bytes32[] public poolIds;
 
+    // Event declarations
+    event Swap(
+        address indexed user,
+        bytes32 indexed poolId,
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 amountOut
+    );
+
+    event LiquidityAdded(
+        address indexed user,
+        bytes32 indexed poolId,
+        uint256 amount0,
+        uint256 amount1,
+        uint256 newToken0Reserve,
+        uint256 newToken1Reserve
+    );
+
+    event LiquidityRemoved(
+        address indexed user,
+        bytes32 indexed poolId,
+        uint256 amount0,
+        uint256 amount1,
+        uint256 newToken0Reserve,
+        uint256 newToken1Reserve
+    );
+
     uint256 public minimumLiquidity;
     uint256 public maxSwapFee;
     uint256 public maxDevFee;
@@ -217,6 +245,15 @@ contract Swapper is Ownable {
                 "Token1 transfer failed"
             );
         }
+
+        emit LiquidityAdded(
+            msg.sender,
+            poolId,
+            amount0,
+            amount1,
+            pool.token0Reserve,
+            pool.token1Reserve
+        );
     }
 
     function removeLiquidity(
@@ -256,6 +293,16 @@ contract Swapper is Ownable {
                 "Token1 transfer failed"
             );
         }
+
+        emit LiquidityRemoved(
+            msg.sender,
+            poolId,
+            amount0,
+            amount1,
+            pool.token0Reserve,
+            pool.token1Reserve
+        );
+
     }
 
     // ========================= Swap Function =========================
@@ -328,6 +375,16 @@ contract Swapper is Ownable {
                 "Output token transfer failed"
             );
         }
+
+        emit Swap(
+            msg.sender,
+            poolId,
+            tokenIn,
+            amountIn,
+            tokenOut,
+            amountOut
+        );
+
     }
 
     // ========================= Helper Functions =========================
