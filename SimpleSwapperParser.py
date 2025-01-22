@@ -171,7 +171,7 @@ def fetch_events(blocks_count):
     # Запрос событий за последние block_count блоков (можно изменить диапазон)
     try:
         logs = web3.eth.get_logs({
-            "fromBlock": latest_block - blocks_count,
+            "fromBlock": latest_block - int(blocks_count),
             "toBlock": latest_block,
             "address": SWAPPER_ADDRESS,  # Адрес контракта
             "topics": [SWAP_EVENT_SIGNATURE]  # Сигнатура события
