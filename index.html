@@ -43,6 +43,18 @@
             margin: 20px auto;
             display: block;
         }
+        .buy {
+            color: green;
+        }
+        .sell {
+            color: red;
+        }
+        .price-buy {
+            color: green;
+        }
+        .price-sell {
+            color: red;
+        }
     </style>
 </head>
 <body>
@@ -55,13 +67,14 @@
 <table id="swapEventsTable">
     <thead>
         <tr>
-            <th>Pool Address</th>
-            <th>Sender</th>
-            <th>Token In</th>
-            <th>Token Out</th>
-            <th>Amount In</th>
-            <th>Amount Out</th>
             <th>Timestamp</th>
+            <th>Type</th>
+            <th>Price</th>
+            <th>Sender</th>
+            <th>Token In</th>  <!-- Token In address -->
+            <th>Token Out</th> <!-- Token Out address -->
+            <th>Amount In</th>  <!-- Amount In dynamically set -->
+            <th>Amount Out</th> <!-- Amount Out dynamically set -->
             <th>Transaction Hash</th>
         </tr>
     </thead>
@@ -105,58 +118,76 @@
     async function fetchSwapEvents() {
         try {
             if (!web3 || !web3.eth) throw new Error("Web3 not initialized properly!");
-
+    
             const latestBlock = await web3.eth.getBlockNumber();
             const fromBlock = latestBlock - 100000;
             const logs = await web3.eth.getPastLogs({
                 fromBlock, toBlock: latestBlock, address: SWAPPER_ADDRESS, topics: [SWAP_EVENT_SIGNATURE],
             });
-
+    
             tableBody.innerHTML = "";
             const fetchedData = []; // Array to accumulate fetched data
-
+            let tokenInName = '';
+            let tokenOutName = '';
+    
             // Run all async operations concurrently
             const logPromises = logs.map(async (log, index) => {
                 try {
                     if (!log.topics[1]) throw new Error(`Log ${index} is missing sender address.`);
                     const sender = "0x" + log.topics[1].slice(-40);
                     if (log.data.length < 130) return;
-
+    
                     const decodedData = web3.eth.abi.decodeParameters(["address", "uint256", "address", "uint256"], log.data);
                     const block = await web3.eth.getBlock(log.blockNumber);
                     const amountIn = web3.utils.fromWei(decodedData[1], 'ether');
                     const amountOut = web3.utils.fromWei(decodedData[3], 'ether');
                     const timestamp = new Date(block.timestamp * 1000);
-
+    
                     // Fetch token names concurrently
-                    const [tokenInName, tokenOutName] = await Promise.all([
+                    const [tokenInNameFetched, tokenOutNameFetched] = await Promise.all([
                         fetchTokenName(decodedData[0]),
                         fetchTokenName(decodedData[2])
                     ]);
-
+    
+                    // Set the token names for the headers (this will update only once)
+                    if (!tokenInName) tokenInName = tokenInNameFetched;
+                    if (!tokenOutName) tokenOutName = tokenOutNameFetched;
+    
+                    // Update headers once with the fetched token names
+                    const tableHeaders = document.querySelectorAll('th');
+                    tableHeaders[6].textContent = `${tokenInName}`;  // Update Token In Name header
+                    tableHeaders[7].textContent = `${tokenOutName}`;  // Update Token Out Name header
+    
+                    // Determine if the transaction is a Buy or Sell based on amount direction
+                    const transactionType = parseFloat(amountOut) > parseFloat(amountIn) ? "Buy" : "Sell";
+                    const typeClass = transactionType === "Buy" ? "buy" : "sell";
+                    const priceClass = transactionType === "Buy" ? "price-buy" : "price-sell";
+                    const price = (parseFloat(amountOut) / parseFloat(amountIn)).toFixed(4);
+    
                     const newRow = `
                         <tr>
-                            <td>${log.address}</td>
-                            <td>${sender}</td>
-                            <td>${tokenInName} (${decodedData[0]})</td>
-                            <td>${tokenOutName} (${decodedData[2]})</td>
-                            <td>${amountIn}</td>
-                            <td>${amountOut}</td>
                             <td>${timestamp.toLocaleString()}</td>
+                            <td class="${typeClass}">${transactionType}</td>  <!-- Buy/Sell Type -->
+                            <td class="${priceClass}">${price}</td>  <!-- Price dynamically set -->
+                            <td>${sender}</td>
+                            <td>${decodedData[0]}</td>  <!-- Token In address -->
+                            <td>${decodedData[2]}</td>  <!-- Token Out address -->
+                            <td>${amountIn}</td>  <!-- Amount In dynamically set -->
+                            <td>${amountOut}</td> <!-- Amount Out dynamically set -->
                             <td><a href="https://etherscan.io/tx/${log.transactionHash}" target="_blank">${log.transactionHash.substring(0, 10)}...</a></td>
                         </tr>`;
                     tableBody.innerHTML += newRow;
-
+    
                     // Store the price data for later chart update
                     fetchedData.push({ x: timestamp, y: parseFloat(amountOut) / parseFloat(amountIn) });
                 } catch (err) {
                     showError(`Error decoding log ${index}: ${err.message}`);
                 }
             });
-
+    
             // Wait for all logs to be processed concurrently
             await Promise.all(logPromises);
-
+    
             // Once all data is fetched, update the chart
             priceData = fetchedData.sort((a, b) => a.x - b.x); // Sort data in chronological order
             updateChart();
@@ -164,6 +195,7 @@
             showError(`Error fetching logs: ${err.message}`);
         }
     }
+
 
     function updateChart() {
         if (window.priceChartInstance) {
