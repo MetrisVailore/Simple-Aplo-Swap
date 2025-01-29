@@ -3,31 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swap Tokens</title>
-    <script src="https://unpkg.com/ethers@5.7.0/dist/ethers.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.6.1/web3.min.js"></script>
+    <title>Swap Event Logs</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.6.0/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #121212;
+            color: #fff;
+        }
+        #errorContainer {
+            color: red;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            display: none; /* Hidden unless an error occurs */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #1e1e1e;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #333;
+            text-align: left;
+        }
+        th {
+            background-color: #333;
+        }
+        a {
+            color: #00ccff;
+        }
+        canvas {
+            max-width: 800px;
+            margin: 20px auto;
+            display: block;
+        }
+        .buy {
+            color: green;
+        }
+        .sell {
+            color: red;
+        }
+        .price-buy {
+            color: green;
+        }
+        .price-sell {
+            color: red;
+        }
+    </style>
 </head>
 <body>
-    <h1>Token Swap</h1>
-    
-    <div>
-        <label for="token0">Token 0 Address: </label>
-        <input type="text" id="token0" placeholder="Enter Token 0 address">
-    </div>
-    
-    <div>
-        <label for="token1">Token 1 Address: </label>
-        <input type="text" id="token1" placeholder="Enter Token 1 address">
-    </div>
-    
-    <div>
-        <label for="amount">Amount to Swap: </label>
-        <input type="number" id="amount" placeholder="Enter amount">
-    </div>
-    
-    <button onclick="connectWallet()">Connect Wallet</button>
-    <button onclick="swapTokens()">Swap Tokens</button>
 
-    <script src="script.js"></script>
+<h1>Swap Event Logs</h1>
+<div id="errorContainer"></div>
+
+<canvas id="priceChart"></canvas>
+
+<table id="swapEventsTable">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Type</th>
+            <th>Price</th>
+            <th>Sender</th>
+            <th>Token In</th>  <!-- Token In address -->
+            <th>Token Out</th> <!-- Token Out address -->
+            <th>Amount In</th>  <!-- Amount In dynamically set -->
+            <th>Amount Out</th> <!-- Amount Out dynamically set -->
+            <th>Transaction Hash</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    const web3 = new Web3('https://pub1.aplocoin.com');
+    const SWAPPER_ADDRESS = "0x3845B5B026aD933956A0D5dA19FF21b3c4520BD4";
+    const SWAP_EVENT_SIGNATURE = web3.utils.keccak256("Swap(address,bytes32,address,uint256,address,uint256)");
+    const tableBody = document.getElementById("swapEventsTable").getElementsByTagName('tbody')[0];
+    const errorContainer = document.getElementById("errorContainer");
+    let priceData = [];
+
+    function showError(message) {
+        console.error(message);
+        errorContainer.innerText = `⚠️ Error: ${message}`;
+        errorContainer.style.display = "block";
+    }
+
+    // Function to fetch token name using the ERC-20 `name()` function
+    async function fetchTokenName(tokenAddress) {
+        try {
+            const tokenContract = new web3.eth.Contract([
+                {
+                    "constant": true,
+                    "inputs": [],
+                    "name": "name",
+                    "outputs": [
+                        { "name": "", "type": "string" }
+                    ],
+                    "type": "function"
+                }
+            ], tokenAddress);
+            return await tokenContract.methods.name().call();
+        } catch (err) {
+            return "Unknown";
+        }
+    }
+
+    async function fetchSwapEvents() {
+        try {
+            if (!web3 || !web3.eth) throw new Error("Web3 not initialized properly!");
+        
+            const latestBlock = await web3.eth.getBlockNumber();
+            const fromBlock = latestBlock - 100000;
+            const logs = await web3.eth.getPastLogs({
+                fromBlock, toBlock: latestBlock, address: SWAPPER_ADDRESS, topics: [SWAP_EVENT_SIGNATURE],
+            });
+        
+            tableBody.innerHTML = "";
+            const fetchedData = []; // Array to accumulate fetched data
+            let tokenInName = '';
+            let tokenOutName = '';
+        
+            // Run all async operations concurrently
+            const logPromises = logs.map(async (log, index) => {
+                try {
+                    if (!log.topics[1]) throw new Error(`Log ${index} is missing sender address.`);
+                    const sender = "0x" + log.topics[1].slice(-40);
+                    if (log.data.length < 130) return;
+        
+                    const decodedData = web3.eth.abi.decodeParameters(["address", "uint256", "address", "uint256"], log.data);
+                    const block = await web3.eth.getBlock(log.blockNumber);
+                    const amountIn = web3.utils.fromWei(decodedData[1], 'ether');
+                    const amountOut = web3.utils.fromWei(decodedData[3], 'ether');
+                    const timestamp = new Date(block.timestamp * 1000);
+        
+                    // Fetch token names concurrently
+                    const [tokenInNameFetched, tokenOutNameFetched] = await Promise.all([
+                        fetchTokenName(decodedData[0]),
+                        fetchTokenName(decodedData[2])
+                    ]);
+        
+                    // Set the token names for the headers (this will update only once)
+                    if (!tokenInName) tokenInName = tokenInNameFetched;
+                    if (!tokenOutName) tokenOutName = tokenOutNameFetched;
+        
+                    // Update headers once with the fetched token names
+                    const tableHeaders = document.querySelectorAll('th');
+                    tableHeaders[6].textContent = `${tokenInName}`;  // Update Token In Name header
+                    tableHeaders[7].textContent = `${tokenOutName}`;  // Update Token Out Name header
+        
+                    // Determine if the transaction is a Buy or Sell based on amount direction
+                    const transactionType = parseFloat(amountOut) > parseFloat(amountIn) ? "Buy" : "Sell";
+                    const typeClass = transactionType === "Buy" ? "buy" : "sell";
+                    const priceClass = transactionType === "Buy" ? "price-buy" : "price-sell";
+                    const price = (parseFloat(amountOut) / parseFloat(amountIn)).toFixed(4);
+        
+                    const newRow = {
+                        timestamp,
+                        type: transactionType,
+                        price,
+                        sender,
+                        tokenIn: decodedData[0],
+                        tokenOut: decodedData[2],
+                        amountIn,
+                        amountOut,
+                        transactionHash: log.transactionHash
+                    };
+                    
+                    // Store the price data for later chart update
+                    fetchedData.push(newRow);
+                } catch (err) {
+                    showError(`Error decoding log ${index}: ${err.message}`);
+                }
+            });
+        
+            // Wait for all logs to be processed concurrently
+            await Promise.all(logPromises);
+        
+            // Sort fetchedData in chronological order based on timestamp
+            fetchedData.sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Now populate the table with sorted data
+            fetchedData.forEach(row => {
+                const newRow = `
+                    <tr>
+                        <td>${row.timestamp.toLocaleString()}</td>
+                        <td class="${row.type === "Buy" ? "buy" : "sell"}">${row.type}</td>  <!-- Buy/Sell Type -->
+                        <td class="${row.type === "Buy" ? "price-buy" : "price-sell"}">${row.price}</td>  <!-- Price dynamically set -->
+                        <td>${row.sender}</td>
+                        <td>${row.tokenIn}</td>  <!-- Token In address -->
+                        <td>${row.tokenOut}</td> <!-- Token Out address -->
+                        <td>${row.amountIn}</td>  <!-- Amount In dynamically set -->
+                        <td>${row.amountOut}</td> <!-- Amount Out dynamically set -->
+                        <td><a href="https://etherscan.io/tx/${row.transactionHash}" target="_blank">${row.transactionHash.substring(0, 10)}...</a></td>
+                    </tr>`;
+                tableBody.innerHTML += newRow;
+            });
+    
+            // Once all data is fetched, update the chart
+            priceData = fetchedData.map(row => ({ x: row.timestamp, y: parseFloat(row.price) }));
+            updateChart();
+        } catch (err) {
+            showError(`Error fetching logs: ${err.message}`);
+        }
+    }
+
+
+
+    function updateChart() {
+        if (window.priceChartInstance) {
+            window.priceChartInstance.destroy();
+        }
+    
+        // Remove old canvas and add a new one to reset it
+        const oldCanvas = document.getElementById("priceChart");
+        const newCanvas = document.createElement("canvas");
+        newCanvas.id = "priceChart";
+        oldCanvas.parentNode.replaceChild(newCanvas, oldCanvas);
+    
+        const ctx = newCanvas.getContext("2d");
+        window.priceChartInstance = new Chart(ctx, {
+            type: "line",
+            data: {
+                datasets: [{
+                    label: "Last Price",
+                    data: priceData,
+                    borderColor: "#00ccff",
+                    backgroundColor: "rgba(0, 204, 255, 0.2)",
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { 
+                        type: "time",
+                        time: { unit: "minute" },
+                        ticks: { color: "#fff" } 
+                    },
+                    y: { ticks: { color: "#fff" } }
+                }
+            }
+        });
+    }
+
+    window.onload = fetchSwapEvents;
+
+    // Global error handling for any uncaught JavaScript errors
+    window.onerror = function(message, source, lineno, colno, error) {
+        showError(`JavaScript Error: ${message} at ${source}:${lineno}:${colno}`);
+    };
+</script>
 </body>
 </html>
