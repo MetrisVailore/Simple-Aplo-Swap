@@ -82,6 +82,26 @@
         errorContainer.style.display = "block";
     }
 
+    // Function to fetch token name using the ERC-20 `name()` function
+    async function fetchTokenName(tokenAddress) {
+        try {
+            const tokenContract = new web3.eth.Contract([
+                {
+                    "constant": true,
+                    "inputs": [],
+                    "name": "name",
+                    "outputs": [
+                        { "name": "", "type": "string" }
+                    ],
+                    "type": "function"
+                }
+            ], tokenAddress);
+            return await tokenContract.methods.name().call();
+        } catch (err) {
+            return "Unknown";
+        }
+    }
+
     async function fetchSwapEvents() {
         try {
             if (!web3 || !web3.eth) throw new Error("Web3 not initialized properly!");
@@ -93,7 +113,10 @@
             });
 
             tableBody.innerHTML = "";
-            logs.forEach(async (log, index) => {
+            const fetchedData = []; // Array to accumulate fetched data
+
+            // Run all async operations concurrently
+            const logPromises = logs.map(async (log, index) => {
                 try {
                     if (!log.topics[1]) throw new Error(`Log ${index} is missing sender address.`);
                     const sender = "0x" + log.topics[1].slice(-40);
@@ -105,25 +128,38 @@
                     const amountOut = web3.utils.fromWei(decodedData[3], 'ether');
                     const timestamp = new Date(block.timestamp * 1000);
 
+                    // Fetch token names concurrently
+                    const [tokenInName, tokenOutName] = await Promise.all([
+                        fetchTokenName(decodedData[0]),
+                        fetchTokenName(decodedData[2])
+                    ]);
+
                     const newRow = `
                         <tr>
                             <td>${log.address}</td>
                             <td>${sender}</td>
-                            <td>${decodedData[0]}</td>
-                            <td>${decodedData[2]}</td>
+                            <td>${tokenInName} (${decodedData[0]})</td>
+                            <td>${tokenOutName} (${decodedData[2]})</td>
                             <td>${amountIn}</td>
                             <td>${amountOut}</td>
                             <td>${timestamp.toLocaleString()}</td>
                             <td><a href="https://etherscan.io/tx/${log.transactionHash}" target="_blank">${log.transactionHash.substring(0, 10)}...</a></td>
                         </tr>`;
                     tableBody.innerHTML += newRow;
-                    
-                    priceData.push({ x: timestamp, y: parseFloat(amountOut) / parseFloat(amountIn) });
-                    updateChart();
+
+                    // Store the price data for later chart update
+                    fetchedData.push({ x: timestamp, y: parseFloat(amountOut) / parseFloat(amountIn) });
                 } catch (err) {
                     showError(`Error decoding log ${index}: ${err.message}`);
                 }
             });
+
+            // Wait for all logs to be processed concurrently
+            await Promise.all(logPromises);
+
+            // Once all data is fetched, update the chart
+            priceData = fetchedData.sort((a, b) => a.x - b.x); // Sort data in chronological order
+            updateChart();
         } catch (err) {
             showError(`Error fetching logs: ${err.message}`);
         }
@@ -165,8 +201,6 @@
             }
         });
     }
-
-
 
     window.onload = fetchSwapEvents;
 
