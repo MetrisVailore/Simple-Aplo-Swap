@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swap Event Logs</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.6.0/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #121212;
+            color: #fff;
+        }
+        #errorContainer {
+            color: red;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            display: none; /* Hidden unless an error occurs */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #1e1e1e;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #333;
+            text-align: left;
+        }
+        th {
+            background-color: #333;
+        }
+        a {
+            color: #00ccff;
+        }
+        canvas {
+            max-width: 800px;
+            margin: 20px auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Swap Event Logs</h1>
+<div id="errorContainer"></div>
+
+<canvas id="priceChart"></canvas>
+
+<table id="swapEventsTable">
+    <thead>
+        <tr>
+            <th>Pool Address</th>
+            <th>Sender</th>
+            <th>Token In</th>
+            <th>Token Out</th>
+            <th>Amount In</th>
+            <th>Amount Out</th>
+            <th>Timestamp</th>
+            <th>Transaction Hash</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    const web3 = new Web3('https://pub1.aplocoin.com');
+    const SWAPPER_ADDRESS = "0x3845B5B026aD933956A0D5dA19FF21b3c4520BD4";
+    const SWAP_EVENT_SIGNATURE = web3.utils.keccak256("Swap(address,bytes32,address,uint256,address,uint256)");
+    const tableBody = document.getElementById("swapEventsTable").getElementsByTagName('tbody')[0];
+    const errorContainer = document.getElementById("errorContainer");
+    let priceData = [];
+
+    function showError(message) {
+        console.error(message);
+        errorContainer.innerText = `⚠️ Error: ${message}`;
+        errorContainer.style.display = "block";
+    }
+
+    async function fetchSwapEvents() {
+        try {
+            if (!web3 || !web3.eth) throw new Error("Web3 not initialized properly!");
+
+            const latestBlock = await web3.eth.getBlockNumber();
+            const fromBlock = latestBlock - 100000;
+            const logs = await web3.eth.getPastLogs({
+                fromBlock, toBlock: latestBlock, address: SWAPPER_ADDRESS, topics: [SWAP_EVENT_SIGNATURE],
+            });
+
+            tableBody.innerHTML = "";
+            logs.forEach(async (log, index) => {
+                try {
+                    if (!log.topics[1]) throw new Error(`Log ${index} is missing sender address.`);
+                    const sender = "0x" + log.topics[1].slice(-40);
+                    if (log.data.length < 130) return;
+
+                    const decodedData = web3.eth.abi.decodeParameters(["address", "uint256", "address", "uint256"], log.data);
+                    const block = await web3.eth.getBlock(log.blockNumber);
+                    const amountIn = web3.utils.fromWei(decodedData[1], 'ether');
+                    const amountOut = web3.utils.fromWei(decodedData[3], 'ether');
+                    const timestamp = new Date(block.timestamp * 1000);
+
+                    const newRow = `
+                        <tr>
+                            <td>${log.address}</td>
+                            <td>${sender}</td>
+                            <td>${decodedData[0]}</td>
+                            <td>${decodedData[2]}</td>
+                            <td>${amountIn}</td>
+                            <td>${amountOut}</td>
+                            <td>${timestamp.toLocaleString()}</td>
+                            <td><a href="https://etherscan.io/tx/${log.transactionHash}" target="_blank">${log.transactionHash.substring(0, 10)}...</a></td>
+                        </tr>`;
+                    tableBody.innerHTML += newRow;
+                    
+                    priceData.push({ x: timestamp, y: parseFloat(amountOut) / parseFloat(amountIn) });
+                    updateChart();
+                } catch (err) {
+                    showError(`Error decoding log ${index}: ${err.message}`);
+                }
+            });
+        } catch (err) {
+            showError(`Error fetching logs: ${err.message}`);
+        }
+    }
+
+    function updateChart() {
+        if (window.priceChartInstance) {
+            window.priceChartInstance.destroy();
+        }
+    
+        // Remove old canvas and add a new one to reset it
+        const oldCanvas = document.getElementById("priceChart");
+        const newCanvas = document.createElement("canvas");
+        newCanvas.id = "priceChart";
+        oldCanvas.parentNode.replaceChild(newCanvas, oldCanvas);
+    
+        const ctx = newCanvas.getContext("2d");
+        window.priceChartInstance = new Chart(ctx, {
+            type: "line",
+            data: {
+                datasets: [{
+                    label: "Last Price",
+                    data: priceData,
+                    borderColor: "#00ccff",
+                    backgroundColor: "rgba(0, 204, 255, 0.2)",
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { 
+                        type: "time",
+                        time: { unit: "minute" },
+                        ticks: { color: "#fff" } 
+                    },
+                    y: { ticks: { color: "#fff" } }
+                }
+            }
+        });
+    }
+
+
+
+    window.onload = fetchSwapEvents;
+
+    // Global error handling for any uncaught JavaScript errors
+    window.onerror = function(message, source, lineno, colno, error) {
+        showError(`JavaScript Error: ${message} at ${source}:${lineno}:${colno}`);
+    };
+</script>
+</body>
+</html>
