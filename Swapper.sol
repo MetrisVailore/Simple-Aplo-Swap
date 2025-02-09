@@ -38,7 +38,7 @@ contract Swapper is Ownable {
 
     bytes32[] public poolIds;
 
-    event LiquidityLocked(bytes32 indexed poolId, bool locked);
+    event LiquidityLocked(bytes32 indexed poolId);
 
     // Event declarations
     event Swap(
@@ -260,11 +260,14 @@ contract Swapper is Ownable {
         );
     }
 
-    function lockLiquidity(bytes32 poolId, bool lock) external {
+    function lockLiquidity(bytes32 poolId) external {
         LiquidityPool storage pool = pools[poolId];
+        require(pool.token0 != address(0), "Pool does not exist");
         require(msg.sender == pool.owner, "Only pool owner can lock liquidity");
-        pool.locked = lock;
-        emit LiquidityLocked(poolId, lock);
+        require(!pool.locked, "Liquidity already locked");
+        
+        pool.locked = true;
+        emit LiquidityLocked(poolId);
     }
 
     function removeLiquidity(
