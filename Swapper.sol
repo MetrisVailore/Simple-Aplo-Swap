@@ -29,6 +29,7 @@ contract Swapper is Ownable {
         address token1;
         address owner;
         uint256 swapFee;
+        bool locked; // Блокировка ликвидности
     }
 
     IWETH9 public weth;
@@ -36,6 +37,8 @@ contract Swapper is Ownable {
     mapping(address => bytes32[]) public userPools;
 
     bytes32[] public poolIds;
+
+    event LiquidityLocked(bytes32 indexed poolId, bool locked);
 
     // Event declarations
     event Swap(
@@ -178,7 +181,8 @@ contract Swapper is Ownable {
             token0: token0,
             token1: token1,
             owner: msg.sender,
-            swapFee: swapFee
+            swapFee: swapFee,
+            locked: false
         });
 
         userPools[msg.sender].push(poolId);
@@ -256,6 +260,13 @@ contract Swapper is Ownable {
         );
     }
 
+    function lockLiquidity(bytes32 poolId, bool lock) external {
+        LiquidityPool storage pool = pools[poolId];
+        require(msg.sender == pool.owner, "Only pool owner can lock liquidity");
+        pool.locked = lock;
+        emit LiquidityLocked(poolId, lock);
+    }
+
     function removeLiquidity(
         bytes32 poolId,
         uint256 amount0,
@@ -267,6 +278,7 @@ contract Swapper is Ownable {
             msg.sender == pool.owner,
             "Only pool owner can remove liquidity"
         );
+        require(!pool.locked, "Liquidity is locked");
 
         require(pool.token0Reserve >= amount0, "Not enough Token0 reserve");
         require(pool.token1Reserve >= amount1, "Not enough Token1 reserve");
