@@ -103,6 +103,7 @@
 
         // Load all pools from the contract
         // Load all pools from the contract
+        // Load all pools from the contract
         async function loadPools() {
             try {
                 const allPools = await contract.methods.getAllPools().call();
@@ -114,9 +115,9 @@
                     const poolDiv = document.createElement('div');
                     poolDiv.classList.add('pool');
         
-                    // Check if reserves are valid before calling fromWei
-                    const token0Reserve = web3.utils.isBN(pool.token0Reserve) ? web3.utils.fromWei(pool.token0Reserve) : "0";
-                    const token1Reserve = web3.utils.isBN(pool.token1Reserve) ? web3.utils.fromWei(pool.token1Reserve) : "0";
+                    // Check if reserves are valid numbers before calling fromWei
+                    const token0Reserve = pool.token0Reserve && !isNaN(pool.token0Reserve) ? web3.utils.fromWei(pool.token0Reserve) : "0";
+                    const token1Reserve = pool.token1Reserve && !isNaN(pool.token1Reserve) ? web3.utils.fromWei(pool.token1Reserve) : "0";
         
                     // Pool Info
                     const poolInfoDiv = document.createElement('div');
@@ -137,6 +138,7 @@
                 console.error("Error loading pools:", error);
             }
         }
+
 
 
         // Call the init function
