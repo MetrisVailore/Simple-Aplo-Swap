@@ -443,8 +443,6 @@ contract Swapper is Ownable {
 
 
     receive() external payable {
-        if (msg.sender != address(weth)) {
-            weth.deposit{value: msg.value}();
-        }
+        require(msg.sender == address(weth), "Direct ETH deposits not allowed");
     }
 }
