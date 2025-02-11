@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AploCoin Pools</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .pool-container {
+            margin-top: 20px;
+        }
+        .pool {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .pool-info {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <h1>AploCoin Pools</h1>
+    <div class="pool-container" id="pools"></div>
+
+    <script>
+        // Contract setup
+        const rpcUrl = 'https://pub1.aplocoin.com'; // RPC URL for AploCoin
+        const contractAddress = '0xF1022666FF0607681De1287E242eCced94805979'; // Contract Address
+        let web3;
+        let contract;
+
+        // ABI for your contract (replace with actual ABI)
+        const contractABI = [
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "getAllPools",
+                "outputs": [
+                    {
+                        "components": [
+                            {
+                                "name": "token0Reserve",
+                                "type": "uint256"
+                            },
+                            {
+                                "name": "token1Reserve",
+                                "type": "uint256"
+                            },
+                            {
+                                "name": "token0",
+                                "type": "address"
+                            },
+                            {
+                                "name": "token1",
+                                "type": "address"
+                            },
+                            {
+                                "name": "owner",
+                                "type": "address"
+                            },
+                            {
+                                "name": "swapFee",
+                                "type": "uint256"
+                            },
+                            {
+                                "name": "locked",
+                                "type": "bool"
+                            }
+                        ],
+                        "name": "",
+                        "type": "tuple[]"
+                    },
+                    {
+                        "name": "",
+                        "type": "bytes32[]"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        // Initialize Web3 and contract
+        async function init() {
+            // Connect to the AploCoin RPC URL
+            web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl));
+            contract = new web3.eth.Contract(contractABI, contractAddress);
+
+            loadPools();
+        }
+
+        // Load all pools from the contract
+        async function loadPools() {
+            try {
+                const allPools = await contract.methods.getAllPools().call();
+                const poolsContainer = document.getElementById('pools');
+                poolsContainer.innerHTML = ''; // Clear existing pools
+
+                allPools[0].forEach((pool, index) => {
+                    const poolId = allPools[1][index];
+                    const poolDiv = document.createElement('div');
+                    poolDiv.classList.add('pool');
+
+                    // Pool Info
+                    const poolInfoDiv = document.createElement('div');
+                    poolInfoDiv.classList.add('pool-info');
+                    poolInfoDiv.innerHTML = `
+                        <strong>Pool ID:</strong> ${poolId}<br>
+                        <strong>Token0:</strong> ${pool.token0}<br>
+                        <strong>Token1:</strong> ${pool.token1}<br>
+                        <strong>Liquidity:</strong> ${web3.utils.fromWei(pool.token0Reserve)} / ${web3.utils.fromWei(pool.token1Reserve)}<br>
+                        <strong>Swap Fee:</strong> ${pool.swapFee / 100}%<br>
+                        <strong>Owner:</strong> ${pool.owner}<br>
+                    `;
+                    poolDiv.appendChild(poolInfoDiv);
+
+                    poolsContainer.appendChild(poolDiv);
+                });
+            } catch (error) {
+                console.error("Error loading pools:", error);
+            }
+        }
+
+        // Call the init function
+        init();
+    </script>
+</body>
+</html>
