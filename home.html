@@ -102,17 +102,22 @@
         }
 
         // Load all pools from the contract
+        // Load all pools from the contract
         async function loadPools() {
             try {
                 const allPools = await contract.methods.getAllPools().call();
                 const poolsContainer = document.getElementById('pools');
                 poolsContainer.innerHTML = ''; // Clear existing pools
-
+        
                 allPools[0].forEach((pool, index) => {
                     const poolId = allPools[1][index];
                     const poolDiv = document.createElement('div');
                     poolDiv.classList.add('pool');
-
+        
+                    // Check if reserves are valid before calling fromWei
+                    const token0Reserve = web3.utils.isBN(pool.token0Reserve) ? web3.utils.fromWei(pool.token0Reserve) : "0";
+                    const token1Reserve = web3.utils.isBN(pool.token1Reserve) ? web3.utils.fromWei(pool.token1Reserve) : "0";
+        
                     // Pool Info
                     const poolInfoDiv = document.createElement('div');
                     poolInfoDiv.classList.add('pool-info');
@@ -120,18 +125,19 @@
                         <strong>Pool ID:</strong> ${poolId}<br>
                         <strong>Token0:</strong> ${pool.token0}<br>
                         <strong>Token1:</strong> ${pool.token1}<br>
-                        <strong>Liquidity:</strong> ${web3.utils.fromWei(pool.token0Reserve)} / ${web3.utils.fromWei(pool.token1Reserve)}<br>
+                        <strong>Liquidity:</strong> ${token0Reserve} / ${token1Reserve}<br>
                         <strong>Swap Fee:</strong> ${pool.swapFee / 100}%<br>
                         <strong>Owner:</strong> ${pool.owner}<br>
                     `;
                     poolDiv.appendChild(poolInfoDiv);
-
+        
                     poolsContainer.appendChild(poolDiv);
                 });
             } catch (error) {
                 console.error("Error loading pools:", error);
             }
         }
+
 
         // Call the init function
         init();
