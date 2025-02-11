@@ -120,7 +120,7 @@
             if (!web3 || !web3.eth) throw new Error("Web3 not initialized properly!");
         
             const latestBlock = await web3.eth.getBlockNumber();
-            const fromBlock = latestBlock - 100000;
+            const fromBlock = Math.max(0, latestBlock - 100000);
             const logs = await web3.eth.getPastLogs({
                 fromBlock, toBlock: latestBlock, address: SWAPPER_ADDRESS, topics: [SWAP_EVENT_SIGNATURE],
             });
